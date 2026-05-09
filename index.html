@@ -622,43 +622,64 @@ async function handleFile(f){
 async function handleImages(files){
   if(!files.length)return;
   if(!S.apiKey){toast('Set your API key in Settings first','error');go('settings');return;}
-  showProc('Reading '+files.length+' image'+(files.length>1?'s':'')+' — processing locally…');
-  try{
-    const exam=S.se||'USMLE Step 1';
-    const nm=files.length===1
-      ? files[0].name.replace(/\.[^.]+$/,'')
-      : 'Screenshots — '+new Date().toLocaleDateString();
 
-    // Convert all images to base64 and send together to Claude
-    const imgBlocks=[];
-    for(const f of files.slice(0,20)){ // max 20 images at once
-      const b64=await fileToBase64(f);
-      imgBlocks.push({type:'image',source:{type:'base64',media_type:f.type||'image/jpeg',data:b64}});
+  const exam=S.se||'USMLE Step 1';
+  const nm=files.length===1
+    ? files[0].name.replace(/\.[^.]+$/,'')
+    : 'Screenshots — '+new Date().toLocaleDateString();
+  const n=parseInt(S.cpc)||8;
+  const dl=S.dlv||'detailed';
+  const dmap={
+    concise:'Answers: 2-3 sentences. Brief mechanism.',
+    detailed:'Thorough answers with clear mechanisms.',
+    deep:'Comprehensive from first principles — molecular→cellular→tissue→organ→clinical.'
+  };
+
+  showProc('Compressing & reading '+files.length+' image'+(files.length>1?'s':'')+'…');
+
+  try{
+    const allCards=[];
+    // Process images in batches of 3 to keep payload under ~2MB per request
+    const BATCH=3;
+    for(let i=0;i<files.slice(0,20).length;i+=BATCH){
+      const batch=Array.from(files).slice(i,i+BATCH);
+      setS(3);
+
+      const el=document.getElementById('ps3');
+      if(el)el.lastChild.textContent=' Processing image '+(i+1)+' of '+files.length+'…';
+
+      // Compress each image before encoding
+      const imgBlocks=[];
+      for(const f of batch){
+        const b64=await fileToBase64(f, 1400, 0.82);
+        imgBlocks.push({
+          type:'image',
+          source:{type:'base64',media_type:'image/jpeg',data:b64}
+        });
+      }
+
+      const batchLabel=batch.length>1
+        ? 'These are '+batch.length+' medical screenshots/textbook pages (batch '+(Math.floor(i/BATCH)+1)+'). Analyse EVERY image — read all visible text, labels, arrows, tables, diagrams. Extract ALL testable concepts.'
+        : 'This is a medical screenshot or textbook photo. Read ALL visible text, labels, arrows, and diagrams carefully. Extract every testable concept.';
+
+      const contentBlocks=[
+        {type:'text',text:batchLabel},
+        ...imgBlocks,
+        {type:'text',text:buildPrompt(nm,exam,n,dmap[dl],S.foc?'PRIORITY FOCUS: '+S.foc:'',true)}
+      ];
+
+      const cards=await claude([{role:'user',content:contentBlocks}],[]);
+      allCards.push(...cards);
+      toast('Batch '+(Math.floor(i/BATCH)+1)+': '+cards.length+' cards generated','info');
+
+      if(i+BATCH<files.length) await new Promise(r=>setTimeout(r,1000));
     }
 
-    setS(3);
-    const n=parseInt(S.cpc)||8;
-    const dl=S.dlv||'detailed';
-    const dmap={
-      concise:'Answers: 2-3 sentences.',
-      detailed:'Thorough answers with clear mechanisms.',
-      deep:'Comprehensive from first principles — molecular→cellular→tissue→organ→clinical.'
-    };
-
-    // Build message with all images + prompt
-    const promptTxt=prompt(nm,exam,n,dmap[dl],S.foc?'PRIORITY FOCUS: '+S.foc:'',true);
-    const contentBlocks=[
-      {type:'text',text:'These are '+files.length+' medical images (screenshots, textbook photos, slides). Analyse every image carefully — read all text, labels, arrows, diagrams — then generate flashcards.'},
-      ...imgBlocks,
-      {type:'text',text:promptTxt}
-    ];
-
-    const cards=await claude([{role:'user',content:contentBlocks}],[]);
     setS(5);
-    S.decks.push({id:Date.now()+'',name:nm,exam,createdAt:new Date().toISOString(),cards});
+    S.decks.push({id:Date.now()+'',name:nm,exam,createdAt:new Date().toISOString(),cards:allCards});
     save();
     hideProc();
-    toast('✅ '+cards.length+' flashcards from '+files.length+' image'+(files.length>1?'s':''),'success');
+    toast('✅ '+allCards.length+' flashcards from '+files.length+' image'+(files.length>1?'s':''),'success');
     rdDecks();rdBrowse();updBadge();go('library');
   }catch(err){
     hideProc();
@@ -687,12 +708,32 @@ async function exImage(file){
   return {t:'imgs',d:'',imgs:[{b64,mediaType:file.type||'image/jpeg',page:1,width:800,height:600}]};
 }
 
-function fileToBase64(file){
+// Compress image to JPEG at reduced size before base64 encoding
+// Keeps payload small — max 1200px wide, 80% quality
+function fileToBase64(file, maxWidth=1200, quality=0.80){
   return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=e=>res(e.target.result.split(',')[1]);
-    r.onerror=rej;
-    r.readAsDataURL(file);
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        // Resize if wider than maxWidth
+        let w=img.width, h=img.height;
+        if(w>maxWidth){ h=Math.round(h*maxWidth/w); w=maxWidth; }
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        // White background (for screenshots with transparency)
+        ctx.fillStyle='#ffffff';
+        ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
+        const dataUrl=canvas.toDataURL('image/jpeg',quality);
+        res(dataUrl.split(',')[1]);
+      };
+      img.onerror=rej;
+      img.src=e.target.result;
+    };
+    reader.onerror=rej;
+    reader.readAsDataURL(file);
   });
 }
 
@@ -836,7 +877,7 @@ async function genCards(content,nm,exam){
     return await claude([{role:'user',content:[
       {type:'text',text:'Analyse this medical image carefully — read all labels, text, arrows, diagrams — then generate flashcards.'},
       ...imgBlocks,
-      {type:'text',text:prompt(nm,exam,n,dmap[dl],foc,true)}
+      {type:'text',text:buildPrompt(nm,exam,n,dmap[dl],foc,true)}
     ]}],[]);
   }
 
@@ -845,7 +886,7 @@ async function genCards(content,nm,exam){
     setS(4);
     return await claude([{role:'user',content:[
       {type:'document',source:{type:'base64',media_type:'application/pdf',data:content.d}},
-      {type:'text',text:prompt(nm,exam,n,dmap[dl],foc,true)}
+      {type:'text',text:buildPrompt(nm,exam,n,dmap[dl],foc,true)}
     ]}],[]);
   }
 
@@ -867,7 +908,7 @@ async function genCards(content,nm,exam){
     try{
       // Get images relevant to this chunk's pages (max 4 per call to keep payload reasonable)
       const chunkImgs = imgsForChunk(imgs, chunks[i], 4);
-      const msgs = buildMsg(chunks[i], chunkImgs, prompt(nm,exam,n,dmap[dl],foc,chunkImgs.length>0));
+      const msgs = buildMsg(chunks[i], chunkImgs, buildPrompt(nm,exam,n,dmap[dl],foc,chunkImgs.length>0));
       const c = await claude(msgs, chunkImgs);
       all.push(...c);
     }catch(e){
@@ -878,7 +919,7 @@ async function genCards(content,nm,exam){
   return all;
 }
 
-function prompt(nm,exam,n,di,foc,hasImages=false){
+function buildPrompt(nm,exam,n,di,foc,hasImages=false){
 return `You are a senior USMLE/MCCQE question writer with 20+ years experience at UWorld, AMBOSS, and NBME. Generate exactly ${n} high-yield flashcards for ${exam} from: "${nm}".
 ${foc}
 ${hasImages ? `
