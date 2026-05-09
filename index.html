@@ -285,10 +285,16 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
         <h1>Turn any PDF into<br/><span class="grad">intelligent flashcards</span></h1>
         <p>Upload First Aid, Toronto Notes, Pathoma, or any medical PDF — Claude AI reads it and builds deep, UWorld-standard mechanistic flashcards that explain the <em>why</em>, not just the what.</p>
         <div class="upzone" id="upzone">
-          <input type="file" id="pdfIn" accept=".pdf" onchange="handleFile(this.files[0])"/>
-          <div class="up-ico">📄</div>
-          <h3>Drop your PDF here</h3>
-          <p>or tap to browse &nbsp;·&nbsp; First Aid, Toronto Notes, Pathoma, Sketchy &amp; more</p>
+          <input type="file" id="pdfIn" accept=".pdf,.doc,.docx,image/*" multiple onchange="handleFiles(this.files)"/>
+          <div class="up-ico" id="upIco">📄</div>
+          <h3>Drop files here</h3>
+          <p>PDF &nbsp;·&nbsp; DOCX &nbsp;·&nbsp; Screenshots &nbsp;·&nbsp; Photos of textbook pages</p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:.875rem">
+            <span style="font-size:.72rem;padding:3px 10px;border-radius:100px;border:1px solid var(--bdr);color:var(--mut)">📄 PDF</span>
+            <span style="font-size:.72rem;padding:3px 10px;border-radius:100px;border:1px solid var(--bdr);color:var(--mut)">📝 DOCX</span>
+            <span style="font-size:.72rem;padding:3px 10px;border-radius:100px;border:1px solid var(--bdr);color:var(--mut)">🖼️ JPG / PNG</span>
+            <span style="font-size:.72rem;padding:3px 10px;border-radius:100px;border:1px solid var(--bdr);color:var(--mut)">📸 Screenshots</span>
+          </div>
         </div>
         <div class="xpills">
           <span class="xpill on" onclick="selX(this,'USMLE Step 1')">USMLE Step 1</span>
@@ -555,107 +561,170 @@ function setupDrop(){
   const z=document.getElementById('upzone');
   z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag');});
   z.addEventListener('dragleave',()=>z.classList.remove('drag'));
-  z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('drag');const f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf')handleFile(f);else toast('Please drop a PDF file','error');});
+  z.addEventListener('drop',e=>{
+    e.preventDefault();z.classList.remove('drag');
+    const files=Array.from(e.dataTransfer.files);
+    if(!files.length) return;
+    // Sort: process images together, then docs
+    const imgs=files.filter(f=>f.type.startsWith('image/'));
+    const docs=files.filter(f=>!f.type.startsWith('image/'));
+    if(imgs.length>0) handleImages(imgs);
+    else if(docs.length>0) handleFile(docs[0]);
+  });
+}
+
+// Called from input[multiple] onchange
+async function handleFiles(fileList){
+  const files=Array.from(fileList);
+  if(!files.length)return;
+  const imgs=files.filter(f=>f.type.startsWith('image/'));
+  const docs=files.filter(f=>!f.type.startsWith('image/'));
+  if(imgs.length>0) await handleImages(imgs);
+  else if(docs.length>0) await handleFile(docs[0]);
 }
 
 async function handleFile(f){
   if(!f)return;
   if(!S.apiKey){toast('Set your API key in Settings first','error');go('settings');return;}
-  if(f.size>30*1024*1024){toast('PDF too large — max 30 MB','error');return;}
-  toast('Reading: '+f.name+' — processing locally, nothing uploaded','info');
-  document.getElementById('procBox').style.display='block';
-  document.getElementById('upzone').style.display='none';
-  animSteps();
+
+  const isPdf  = f.type==='application/pdf';
+  const isDocx = f.name.match(/\.docx?$/i);
+  const isImg  = f.type.startsWith('image/');
+
+  if(!isPdf&&!isDocx&&!isImg){toast('Unsupported file type','error');return;}
+  if(f.size>100*1024*1024){toast('File too large — max 100 MB','error');return;}
+
+  showProc('Reading: '+f.name);
   try{
-    const txt=await exPdf(f);setS(2);
+    let extracted;
+    if(isPdf)        extracted = await exPdf(f);
+    else if(isDocx)  extracted = await exDocx(f);
+    else             extracted = await exImage(f);
+
+    setS(2);
     const exam=S.se||'USMLE Step 1';
-    const nm=f.name.replace(/\.pdf$/i,'');
-    const cards=await genCards(txt,nm,exam);setS(5);
-    S.decks.push({id:Date.now()+'',nm,name:nm,exam,createdAt:new Date().toISOString(),cards});
+    const nm=f.name.replace(/\.[^.]+$/,'');
+    const cards=await genCards(extracted,nm,exam);
+    setS(5);
+    S.decks.push({id:Date.now()+'',name:nm,exam,createdAt:new Date().toISOString(),cards});
     save();
-    document.getElementById('procBox').style.display='none';
-    document.getElementById('upzone').style.display='block';
-    document.getElementById('pdfIn').value='';
-    toast('✅ '+cards.length+' flashcards created from "'+nm+'"','success');
+    hideProc();
+    toast('✅ '+cards.length+' flashcards from "'+nm+'"','success');
     rdDecks();rdBrowse();updBadge();go('library');
   }catch(err){
-    document.getElementById('procBox').style.display='none';
-    document.getElementById('upzone').style.display='block';
+    hideProc();
     toast('Error: '+err.message,'error');
+    console.error(err);
   }
 }
 
-// ── PDF IMAGE EXTRACTION HELPERS ──
+// Handle multiple image files dropped/selected together — treat as one deck
+async function handleImages(files){
+  if(!files.length)return;
+  if(!S.apiKey){toast('Set your API key in Settings first','error');go('settings');return;}
+  showProc('Reading '+files.length+' image'+(files.length>1?'s':'')+'…');
+  try{
+    const exam=S.se||'USMLE Step 1';
+    const nm=files.length===1
+      ? files[0].name.replace(/\.[^.]+$/,'')
+      : 'Screenshots — '+new Date().toLocaleDateString();
 
-// Extract embedded images from a single PDF page using PDF.js operator list
-async function extractPageImages(page) {
-  const imgs = [];
-  try {
-    const ops = await page.getOperatorList();
-    const { OPS } = pdfjsLib;
-    const objs = page.objs;
-    const commonObjs = page.commonObjs;
-
-    for (let j = 0; j < ops.fnArray.length; j++) {
-      if (ops.fnArray[j] === OPS.paintImageXObject || ops.fnArray[j] === OPS.paintInlineImageXObject) {
-        const imgRef = ops.argsArray[j][0];
-        try {
-          // Resolve the image object
-          let imgData = null;
-          if (objs.has(imgRef)) imgData = objs.get(imgRef);
-          else if (commonObjs.has(imgRef)) imgData = commonObjs.get(imgRef);
-          if (!imgData || !imgData.data) continue;
-
-          const { width, height, data, kind } = imgData;
-          // Skip tiny images (icons, borders, decorations) — only keep meaningful diagrams
-          if (width < 80 || height < 80) continue;
-          // Skip very thin images (likely rules/lines)
-          if (width / height > 20 || height / width > 20) continue;
-
-          // Render to canvas to get a clean base64 PNG
-          const canvas = document.createElement('canvas');
-          canvas.width = width; canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          const imageData = ctx.createImageData(width, height);
-
-          // Handle different color depths (GRAYSCALE, RGB, RGBA)
-          if (kind === 1) { // GRAYSCALE_1BPP
-            for (let p = 0; p < width * height; p++) {
-              const byte = data[p >> 3], bit = 7 - (p & 7);
-              const v = (byte >> bit) & 1 ? 255 : 0;
-              imageData.data[p*4]=v; imageData.data[p*4+1]=v; imageData.data[p*4+2]=v; imageData.data[p*4+3]=255;
-            }
-          } else if (kind === 2) { // RGB_24BPP
-            for (let p = 0; p < width * height; p++) {
-              imageData.data[p*4]   = data[p*3];
-              imageData.data[p*4+1] = data[p*3+1];
-              imageData.data[p*4+2] = data[p*3+2];
-              imageData.data[p*4+3] = 255;
-            }
-          } else { // RGBA or other — copy as-is
-            for (let p = 0; p < data.length; p++) imageData.data[p] = data[p];
-          }
-
-          ctx.putImageData(imageData, 0, 0);
-          // Get as JPEG at 85% quality to keep payload manageable
-          const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-          imgs.push({ b64, width, height, mediaType: 'image/jpeg' });
-        } catch(_) { /* skip unresolvable image objects */ }
-      }
+    // Convert all images to base64 and send together to Claude
+    const imgBlocks=[];
+    for(const f of files.slice(0,20)){ // max 20 images at once
+      const b64=await fileToBase64(f);
+      imgBlocks.push({type:'image',source:{type:'base64',media_type:f.type||'image/jpeg',data:b64}});
     }
-  } catch(_) {}
-  return imgs;
+
+    setS(3);
+    const n=parseInt(S.cpc)||8;
+    const dl=S.dlv||'detailed';
+    const dmap={
+      concise:'Answers: 2-3 sentences.',
+      detailed:'Thorough answers with clear mechanisms.',
+      deep:'Comprehensive from first principles — molecular→cellular→tissue→organ→clinical.'
+    };
+
+    // Build message with all images + prompt
+    const promptTxt=prompt(nm,exam,n,dmap[dl],S.foc?'PRIORITY FOCUS: '+S.foc:'',true);
+    const contentBlocks=[
+      {type:'text',text:'These are '+files.length+' medical images (screenshots, textbook photos, slides). Analyse every image carefully — read all text, labels, arrows, diagrams — then generate flashcards.'},
+      ...imgBlocks,
+      {type:'text',text:promptTxt}
+    ];
+
+    const cards=await claude([{role:'user',content:contentBlocks}],[]);
+    setS(5);
+    S.decks.push({id:Date.now()+'',name:nm,exam,createdAt:new Date().toISOString(),cards});
+    save();
+    hideProc();
+    toast('✅ '+cards.length+' flashcards from '+files.length+' image'+(files.length>1?'s':''),'success');
+    rdDecks();rdBrowse();updBadge();go('library');
+  }catch(err){
+    hideProc();
+    toast('Error: '+err.message,'error');
+    console.error(err);
+  }
 }
 
-// Deduplicate images — same dimensions + same first 200 bytes = duplicate
-function dedupImages(imgs) {
-  const seen = new Set();
-  return imgs.filter(img => {
-    const key = img.width + 'x' + img.height + '_' + img.b64.slice(0, 200);
-    if (seen.has(key)) return false;
-    seen.add(key); return true;
+function showProc(msg){
+  toast(msg,'info');
+  document.getElementById('procBox').style.display='block';
+  document.getElementById('upzone').style.display='none';
+  animSteps();
+}
+function hideProc(){
+  document.getElementById('procBox').style.display='none';
+  document.getElementById('upzone').style.display='block';
+  document.getElementById('pdfIn').value='';
+}
+
+// ── FILE READERS ──
+
+// Single image → {t:'imgs', imgs:[{b64,mediaType,page:1}]}
+async function exImage(file){
+  const b64=await fileToBase64(file);
+  return {t:'imgs',d:'',imgs:[{b64,mediaType:file.type||'image/jpeg',page:1,width:800,height:600}]};
+}
+
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result.split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(file);
   });
 }
+
+// DOCX → extract raw text using mammoth-style manual XML parse (no external lib needed)
+async function exDocx(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=async e=>{
+      try{
+        // DOCX is a ZIP — use JSZip to unpack word/document.xml
+        if(typeof JSZip==='undefined') throw new Error('JSZip not loaded');
+        const zip=await JSZip.loadAsync(e.target.result);
+        const xmlFile=zip.file('word/document.xml');
+        if(!xmlFile) throw new Error('Not a valid DOCX file');
+        const xml=await xmlFile.async('string');
+        // Strip XML tags, decode entities, clean whitespace
+        let txt=xml
+          .replace(/<w:p[ >]/g,'\n<w:p ')   // paragraph breaks
+          .replace(/<w:br[^>]*>/g,'\n')
+          .replace(/<[^>]+>/g,' ')
+          .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ')
+          .replace(/[ \t]+/g,' ')
+          .replace(/\n +/g,'\n')
+          .trim();
+        res({t:'txt',d:txt,imgs:[]});
+      }catch(e){rej(e);}
+    };
+    r.onerror=rej;
+    r.readAsArrayBuffer(file);
+  });
+}
+
 
 async function exPdf(file){
   return new Promise((res,rej)=>{
@@ -758,12 +827,26 @@ async function genCards(content,nm,exam){
 
   if(hasImgs) toast(imgs.length+' diagrams found — Claude will use them in explanations','success');
 
+  // Single image or small set of images
+  if(content.t==='imgs'){
+    setS(4);
+    const imgBlocks=content.imgs.map(img=>({
+      type:'image',source:{type:'base64',media_type:img.mediaType,data:img.b64}
+    }));
+    return await claude([{role:'user',content:[
+      {type:'text',text:'Analyse this medical image carefully — read all labels, text, arrows, diagrams — then generate flashcards.'},
+      ...imgBlocks,
+      {type:'text',text:prompt(nm,exam,n,dmap[dl],foc,true)}
+    ]}],[]);
+  }
+
+  // PDF sent as base64 document directly to Claude
   if(content.t==='b64'){
     setS(4);
     return await claude([{role:'user',content:[
       {type:'document',source:{type:'base64',media_type:'application/pdf',data:content.d}},
       {type:'text',text:prompt(nm,exam,n,dmap[dl],foc,true)}
-    ]}]);
+    ]}],[]);
   }
 
   const CHUNK_SIZE = 100000;
@@ -840,11 +923,20 @@ async function claude(msgs, chunkImgs=[]){
   const headers = {'Content-Type':'application/json','x-api-key':S.apiKey};
   if (endpoint.includes('anthropic.com')) headers['anthropic-version'] = '2023-06-01';
 
-  const r=await fetch(endpoint,{
-    method:'POST',
-    headers,
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,messages:msgs})
-  });
+  // 55s timeout — Vercel serverless functions max at 60s
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),55000);
+  let r;
+  try{
+    r=await fetch(endpoint,{method:'POST',headers,signal:ctrl.signal,body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,messages:msgs})});
+  }catch(fe){
+    clearTimeout(timer);
+    if(fe.name==='AbortError') throw new Error('Request timed out — try a smaller file or fewer cards per section');
+    throw new Error('Network error: '+fe.message+'. Check your internet connection.');
+  }
+  clearTimeout(timer);
+  if(r.status===429){throw new Error('Rate limited by Anthropic — wait 30s and try again');}
+  if(r.status===413){throw new Error('Payload too large — reduce cards per section in Settings');}
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+r.status);}
   const d=await r.json();
   const txt=d.content.filter(c=>c.type==='text').map(c=>c.text).join('');
@@ -1104,6 +1196,8 @@ init().catch(console.error);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script>
 
+<!-- JSZip for DOCX extraction -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- PDF.js (cdn.jsdelivr.net is in the allowed CDN list) -->
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>if(typeof pdfjsLib!=='undefined')pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';</script>
