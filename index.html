@@ -323,10 +323,16 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
     <div class="page" id="page-library">
       <div class="d-flex align-items-center justify-content-between mb-3">
         <h4 style="font-family:var(--fh);font-weight:800;margin:0">My Decks</h4>
-        <button class="btn-p" onclick="go('home')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          New Deck
-        </button>
+        <div class="d-flex gap-2">
+          <button class="btn-danger" onclick="clearEmptyDecks()" title="Remove all empty decks">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+            Clear Empty
+          </button>
+          <button class="btn-p" onclick="go('home')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Deck
+          </button>
+        </div>
       </div>
       <div class="cgrid" id="decksGrid">
         <div class="empty" style="grid-column:1/-1"><div class="eico">📚</div><h4>No decks yet</h4><p>Upload a file to create your first deck</p></div>
@@ -954,7 +960,7 @@ async function genCards(content,nm,exam){
       const c = await claude(msgs, chunkImgs);
       all.push(...c);
     }catch(e){
-      toast('Section '+(i+1)+' skipped: '+e.message,'error');
+      console.error('Section '+(i+1)+' error:', e); toast('Section '+(i+1)+' error: '+e.message,'error');
     }
     if(i<totalChunks-1) await new Promise(r=>setTimeout(r,900));
   }
@@ -1100,6 +1106,15 @@ function rdDecks(){
 }
 
 function openDeck(id){S.ae=null;S.ad=id;go('browse');}
+
+function clearEmptyDecks(){
+  const before = S.decks.length;
+  S.decks = S.decks.filter(d => d.cards && d.cards.length > 0);
+  const removed = before - S.decks.length;
+  if(!removed){ toast('No empty decks found','info'); return; }
+  save(); rdDecks(); rdStats(); updBadge();
+  toast('Removed ' + removed + ' empty deck' + (removed>1?'s':''), 'success');
+}
 
 function deleteDeck(id){
   if(!confirm('Delete this deck and all its cards?')) return;
@@ -1301,7 +1316,12 @@ document.addEventListener('keydown',e=>{
 
 // ── BOOT ──
 init().catch(console.error);
-if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+// Unregister any old service workers so stale cache never blocks updates
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
+  });
+}
 </script>
 
 <!-- JSZip for DOCX extraction -->
