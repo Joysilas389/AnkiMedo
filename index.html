@@ -633,19 +633,54 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
   <div class="msheet" style="border-radius:20px;margin:.75rem;max-height:88vh">
     <div class="mhandle"></div>
     <div class="mttl">Quiz Mode <button class="mclose" onclick="closeQuiz()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <!-- Quiz Setup Screen -->
+    <div id="q-setup">
+      <div style="margin-bottom:1rem">
+        <label class="flbl">Questions per session</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:.35rem">
+          <button class="chip on" id="qn-10" onclick="setQN(this,10)">10</button>
+          <button class="chip" id="qn-20" onclick="setQN(this,20)">20</button>
+          <button class="chip" id="qn-40" onclick="setQN(this,40)">40</button>
+          <button class="chip" id="qn-all" onclick="setQN(this,9999)">All</button>
+        </div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <label class="flbl">Source</label>
+        <select class="finp" id="q-source" style="margin-top:.35rem">
+          <option value="all">All Decks</option>
+        </select>
+      </div>
+      <div style="margin-bottom:1.25rem">
+        <label class="flbl">Difficulty</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:.35rem">
+          <button class="chip on" id="qd-all" onclick="setQD(this,'all')">All</button>
+          <button class="chip" id="qd-easy" onclick="setQD(this,'easy')">Easy</button>
+          <button class="chip" id="qd-medium" onclick="setQD(this,'medium')">Medium</button>
+          <button class="chip" id="qd-hard" onclick="setQD(this,'hard')">Hard</button>
+        </div>
+      </div>
+      <div id="q-avail" style="font-size:.8rem;color:var(--mut);margin-bottom:1rem"></div>
+      <button class="btn-p" style="width:100%;justify-content:center;padding:.75rem" onclick="launchQuiz()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Start Quiz
+      </button>
+    </div>
+    <!-- Quiz Active Screen -->
+    <div id="q-active" style="display:none">
     <div class="sprog mb-3"><div class="strack"><div class="sfill" id="q-fill" style="width:0%"></div></div><span class="stxt" id="q-txt">0/0</span></div>
     <div style="font-size:.67rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--acc2);margin-bottom:.6rem" id="q-topic"></div>
     <div style="font-size:.95rem;line-height:1.7;margin-bottom:1.125rem" id="q-stem"></div>
     <div id="q-opts"></div>
     <div id="q-feedback" style="display:none;margin-top:.875rem;padding:.75rem .875rem;background:rgba(59,130,246,.07);border-left:3px solid var(--acc);border-radius:0 9px 9px 0;font-size:.835rem;color:var(--mut);line-height:1.65"></div>
     <button class="btn-p mt-3" id="q-next" style="display:none;width:100%" onclick="nextQ()">Next →</button>
+    </div><!-- /q-active -->
     <div id="q-result" style="display:none;text-align:center;padding:1.5rem 0">
       <div style="font-size:2.25rem;margin-bottom:.4rem" id="q-emoji"></div>
       <div style="font-family:var(--fh);font-size:1.15rem;font-weight:800;margin-bottom:.2rem" id="q-score"></div>
       <div style="color:var(--mut);font-size:.855rem;margin-bottom:1rem" id="q-msg"></div>
       <div class="d-flex gap-2 justify-content-center">
-        <button class="btn-p" onclick="startQuiz()">Retry</button>
-        <button class="btn-o" onclick="closeQuiz()">Done</button>
+        <button class="btn-p" onclick="launchQuiz()">Retry Same</button>
+        <button class="btn-o" onclick="startQuiz()">New Quiz</button><button class="btn-o" onclick="closeQuiz()">Done</button>
       </div>
     </div>
   </div>
@@ -1222,15 +1257,66 @@ function delCard(){
 }
 
 // ══ QUIZ MODE ══
-let QZ={cards:[],idx:0,score:0,answered:false};
+let QZ={cards:[],idx:0,score:0,answered:false,qn:10,diff:'all',src:'all'};
+
 function startQuiz(){
-  const cards=aC();if(!cards.length){toast('No cards yet — upload a file first','i');return;}
-  QZ={cards:shuffle([...cards]).slice(0,Math.min(cards.length,40)),idx:0,score:0,answered:false};
+  const cards=aC();
+  if(!cards.length){toast('No cards yet — upload a file first','i');return;}
+  // Populate source dropdown with decks
+  const sel=document.getElementById('q-source');
+  sel.innerHTML='<option value="all">All Decks</option>';
+  G.decks.forEach(d=>{
+    const opt=document.createElement('option');
+    opt.value=d.id;opt.textContent=d.name+' ('+d.cards.length+' cards)';
+    sel.appendChild(opt);
+  });
+  // Update available count
+  updQAvail();
+  // Show setup screen
+  document.getElementById('q-setup').style.display='block';
+  document.getElementById('q-active').style.display='none';
   document.getElementById('q-result').style.display='none';
   document.getElementById('quiz-modal').classList.add('on');
+}
+
+function setQN(el,n){
+  document.querySelectorAll('[id^="qn-"]').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');QZ.qn=n;updQAvail();
+}
+function setQD(el,d){
+  document.querySelectorAll('[id^="qd-"]').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');QZ.diff=d;updQAvail();
+}
+
+function updQAvail(){
+  let pool=getQPool();
+  const n=Math.min(pool.length,QZ.qn===9999?pool.length:QZ.qn);
+  const el=document.getElementById('q-avail');
+  if(el) el.textContent=pool.length+' cards available → '+n+' questions in this session';
+}
+
+function getQPool(){
+  let pool=aC();
+  const src=document.getElementById('q-source')?.value||'all';
+  if(src!=='all') pool=pool.filter(c=>c.di===src);
+  if(QZ.diff!=='all') pool=pool.filter(c=>c.difficulty===QZ.diff);
+  return pool;
+}
+
+function launchQuiz(){
+  let pool=getQPool();
+  if(!pool.length){toast('No cards match your filters','i');return;}
+  const n=QZ.qn===9999?pool.length:Math.min(pool.length,QZ.qn);
+  QZ.cards=shuffle([...pool]).slice(0,n);
+  QZ.idx=0;QZ.score=0;QZ.answered=false;
+  document.getElementById('q-setup').style.display='none';
+  document.getElementById('q-active').style.display='block';
+  document.getElementById('q-result').style.display='none';
   loadQ();
 }
+
 function closeQuiz(){document.getElementById('quiz-modal').classList.remove('on');}
+
 function loadQ(){
   const c=QZ.cards[QZ.idx];if(!c){showQResult();return;}
   QZ.answered=false;
@@ -1241,41 +1327,55 @@ function loadQ(){
   document.getElementById('q-stem').textContent=c.question;
   document.getElementById('q-feedback').style.display='none';
   document.getElementById('q-next').style.display='none';
-  document.getElementById('q-result').style.display='none';
-  const others=QZ.cards.filter(x=>x.id!==c.id);
-  const wrongs=shuffle(others).slice(0,3).map(x=>x.answer.split(/[.!?]/)[0].trim()||x.answer.slice(0,80));
-  const correct=c.answer.split(/[.!?]/)[0].trim()||c.answer.slice(0,80);
-  const opts=shuffle([correct,...wrongs]);
-  document.getElementById('q-opts').innerHTML=opts.map((o,i)=>
-    `<button class="qopt" onclick="ansQ(this,'${o===correct?'c':'w'}')"><strong style="color:var(--acc);margin-right:7px">${String.fromCharCode(65+i)}.</strong>${xe(o)}</button>`
-  ).join('');
-}
-function ansQ(btn,result){
-  if(QZ.answered)return;QZ.answered=true;
-  document.querySelectorAll('.qopt').forEach(b=>{
-    const r=b.getAttribute('onclick').includes("'c'");
-    if(r)b.classList.add('show-correct');
+  // Build 4 options: 1 correct + 3 wrong from other cards
+  const allCards=aC();
+  const others=allCards.filter(x=>x.id!==c.id);
+  const wrongs=shuffle(others).slice(0,3).map(x=>{
+    // Take first sentence of answer as distractor
+    return (x.answer.split(/
+/)[0]||x.answer).split(/[.!?]/)[0].trim()||x.answer.slice(0,100);
   });
-  if(result==='c'){btn.classList.remove('show-correct');btn.classList.add('correct');QZ.score++;}
-  else{btn.classList.add('wrong');document.querySelectorAll('.qopt').forEach(b=>{if(b.getAttribute('onclick').includes("'c'")&&!b.classList.contains('wrong'))b.classList.add('correct');});}
+  const correct=(c.answer.split(/
+/)[0]||c.answer).split(/[.!?]/)[0].trim()||c.answer.slice(0,100);
+  const opts=shuffle([correct,...wrongs]);
+  const correctIdx=opts.indexOf(correct);
+  document.getElementById('q-opts').innerHTML=opts.map((o,i)=>{
+    const isCor=i===correctIdx;
+    return '<button class="qopt" onclick="ansQ(this,'+isCor+')" data-correct="'+isCor+'">'+String.fromCharCode(65+i)+'. '+xe(o)+'</button>';
+  }).join('');
+}
+
+function ansQ(btn,isCorrect){
+  if(QZ.answered)return;QZ.answered=true;
+  // Mark all options
+  document.querySelectorAll('.qopt').forEach(b=>{
+    if(b.dataset.correct==='true') b.classList.add('correct');
+  });
+  if(isCorrect){
+    btn.classList.add('correct');QZ.score++;
+  } else {
+    btn.classList.add('wrong');
+  }
+  // Show mechanism
   const c=QZ.cards[QZ.idx];
   const fb=document.getElementById('q-feedback');
   fb.innerHTML='<strong style="color:var(--txt)">⚡ Mechanism:</strong> '+(c.mechanism||c.answer);
   fb.style.display='block';
   document.getElementById('q-next').style.display='block';
 }
+
 function nextQ(){QZ.idx++;if(QZ.idx>=QZ.cards.length)showQResult();else loadQ();}
+
 function showQResult(){
   const pct=Math.round(QZ.score/QZ.cards.length*100);
-  document.getElementById('q-opts').innerHTML='';
-  document.getElementById('q-feedback').style.display='none';
-  document.getElementById('q-next').style.display='none';
-  document.getElementById('q-fill').style.width='100%';
-  document.getElementById('q-stem').textContent='';
-  document.getElementById('q-topic').textContent='';
+  document.getElementById('q-active').style.display='none';
   document.getElementById('q-emoji').textContent=pct>=80?'🏆':pct>=60?'💪':pct>=40?'📚':'🔄';
   document.getElementById('q-score').textContent=QZ.score+'/'+QZ.cards.length+' correct ('+pct+'%)';
-  document.getElementById('q-msg').textContent=pct>=80?'Excellent! Ready for boards.':pct>=60?'Good — review the ones you missed.':pct>=40?'Keep studying — building momentum.':'Review the material and retry.';
+  document.getElementById('q-msg').textContent=
+    pct>=80?'Excellent! Board-ready performance.':
+    pct>=60?'Good work — review the ones you missed.':
+    pct>=40?'Keep studying — you're building momentum.':
+    'Review the material carefully and retry.';
   document.getElementById('q-result').style.display='block';
 }
 
