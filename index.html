@@ -497,12 +497,12 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 9.5-9.5z"/></svg>
           Flashcard Generation
         </h5>
-        <div class="row g-3">
-          <div class="col-6">
+        <div style="display:flex;flex-direction:column;gap:.875rem">
+          <div>
             <label class="flbl">Cards per section <span style="color:var(--mut);font-weight:400">(3–5 recommended)</span></label>
             <input type="number" class="finp" id="cpc" value="5" min="2" max="10"/>
           </div>
-          <div class="col-6">
+          <div>
             <label class="flbl">Detail level</label>
             <select class="finp" id="dlvl">
               <option value="concise">Concise</option>
@@ -510,11 +510,11 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
               <option value="deep">Deep Mechanistic</option>
             </select>
           </div>
-          <div class="col-12">
+          <div>
             <label class="flbl">Focus areas (optional)</label>
             <input type="text" class="finp" id="foc" placeholder="e.g. enzyme deficiencies, pharmacology"/>
           </div>
-          <div class="col-12">
+          <div>
             <button class="btn-p" onclick="saveKey()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               Save Settings
@@ -860,6 +860,8 @@ async function genCards(content,nm,exam){
   const CHUNK=40000;
   const chunks=chk(content.d,CHUNK);
   const all=[];
+  // Use exactly the number of cards the user requested
+  const cardsThisRun = n;
   for(let i=0;i<chunks.length;i++){
     setS(i<2?3:4);
     const el=document.getElementById('ps3');if(el)el.lastChild.textContent=' Section '+(i+1)+'/'+chunks.length;
@@ -868,10 +870,10 @@ async function genCards(content,nm,exam){
     if(ci.length){
       const blocks=[];
       ci.forEach((img,j)=>{blocks.push({type:'text',text:'[Diagram '+(j+1)+' from page '+img.page+']'});blocks.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.b64}});});
-      blocks.push({type:'text',text:mkPrompt(nm,exam,n,dmap[dl],foc)+'\n\nPDF CONTENT:\n'+chunks[i]});
+      blocks.push({type:'text',text:mkPrompt(nm,exam,cardsThisRun,dmap[dl],foc)+'\n\nPDF CONTENT:\n'+chunks[i]});
       msgs=[{role:'user',content:blocks}];
     } else {
-      msgs=[{role:'user',content:mkPrompt(nm,exam,n,dmap[dl],foc)+'\n\nPDF CONTENT:\n'+chunks[i]}];
+      msgs=[{role:'user',content:mkPrompt(nm,exam,cardsThisRun,dmap[dl],foc)+'\n\nPDF CONTENT:\n'+chunks[i]}];
     }
     try{const c=await callAPI(msgs);all.push(...c);}catch(e){toast('Section '+(i+1)+' error: '+e.message,'e');}
     if(i<chunks.length-1)await delay(2000);
@@ -955,7 +957,7 @@ async function callAPI(msgs){
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':G.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       signal:ctrl.signal,
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,messages:msgs})
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:8000,messages:msgs})
     });
   }catch(fe){clearTimeout(timer);if(fe.name==='AbortError')throw new Error('Timed out — check connection');throw new Error('Network error: '+fe.message);}
   clearTimeout(timer);
