@@ -300,10 +300,10 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
           <div class="procbox">
             <div class="spinner"></div>
             <h5 style="font-family:var(--fh);font-weight:800;margin-bottom:.3rem">Claude is reading your PDF…</h5>
-            <p style="color:var(--mut);font-size:.83rem">Building UWorld-standard mechanistic flashcards</p>
+            <p style="color:var(--mut);font-size:.83rem">PDF processed locally — text + diagrams sent to Claude</p>
             <div class="psteps">
-              <div class="pstep" id="ps1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Extracting text from PDF</div>
-              <div class="pstep" id="ps2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Identifying topics &amp; systems</div>
+              <div class="pstep" id="ps1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Extracting text &amp; diagrams locally (PDF never leaves device)</div>
+              <div class="pstep" id="ps2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Identifying topics, systems &amp; diagrams</div>
               <div class="pstep" id="ps3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Generating clinical vignettes</div>
               <div class="pstep" id="ps4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Adding mechanistic explanations</div>
               <div class="pstep" id="ps5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Calibrating difficulty levels</div>
@@ -480,6 +480,13 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
           </div>
           <div class="cbody" id="sA"></div>
           <div class="cmech" id="sMech"></div>
+          <div id="sDiagram" style="margin-top:.875rem;display:none">
+            <div style="font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--acc2);margin-bottom:.4rem;display:flex;align-items:center;gap:5px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Diagram from PDF
+            </div>
+            <img id="sDiagramImg" style="width:100%;max-height:260px;object-fit:contain;border-radius:8px;border:1px solid var(--bdr);background:#fff" alt="Embedded diagram"/>
+          </div>
           <div id="sBuzz" style="margin-top:.625rem;font-size:.76rem;color:var(--mut);display:flex;align-items:center;gap:5px"></div>
         </div>
       </div>
@@ -555,7 +562,7 @@ async function handleFile(f){
   if(!f)return;
   if(!S.apiKey){toast('Set your API key in Settings first','error');go('settings');return;}
   if(f.size>30*1024*1024){toast('PDF too large — max 30 MB','error');return;}
-  toast('Reading: '+f.name,'info');
+  toast('Reading: '+f.name+' — processing locally, nothing uploaded','info');
   document.getElementById('procBox').style.display='block';
   document.getElementById('upzone').style.display='none';
   animSteps();
@@ -578,6 +585,78 @@ async function handleFile(f){
   }
 }
 
+// ── PDF IMAGE EXTRACTION HELPERS ──
+
+// Extract embedded images from a single PDF page using PDF.js operator list
+async function extractPageImages(page) {
+  const imgs = [];
+  try {
+    const ops = await page.getOperatorList();
+    const { OPS } = pdfjsLib;
+    const objs = page.objs;
+    const commonObjs = page.commonObjs;
+
+    for (let j = 0; j < ops.fnArray.length; j++) {
+      if (ops.fnArray[j] === OPS.paintImageXObject || ops.fnArray[j] === OPS.paintInlineImageXObject) {
+        const imgRef = ops.argsArray[j][0];
+        try {
+          // Resolve the image object
+          let imgData = null;
+          if (objs.has(imgRef)) imgData = objs.get(imgRef);
+          else if (commonObjs.has(imgRef)) imgData = commonObjs.get(imgRef);
+          if (!imgData || !imgData.data) continue;
+
+          const { width, height, data, kind } = imgData;
+          // Skip tiny images (icons, borders, decorations) — only keep meaningful diagrams
+          if (width < 80 || height < 80) continue;
+          // Skip very thin images (likely rules/lines)
+          if (width / height > 20 || height / width > 20) continue;
+
+          // Render to canvas to get a clean base64 PNG
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          const imageData = ctx.createImageData(width, height);
+
+          // Handle different color depths (GRAYSCALE, RGB, RGBA)
+          if (kind === 1) { // GRAYSCALE_1BPP
+            for (let p = 0; p < width * height; p++) {
+              const byte = data[p >> 3], bit = 7 - (p & 7);
+              const v = (byte >> bit) & 1 ? 255 : 0;
+              imageData.data[p*4]=v; imageData.data[p*4+1]=v; imageData.data[p*4+2]=v; imageData.data[p*4+3]=255;
+            }
+          } else if (kind === 2) { // RGB_24BPP
+            for (let p = 0; p < width * height; p++) {
+              imageData.data[p*4]   = data[p*3];
+              imageData.data[p*4+1] = data[p*3+1];
+              imageData.data[p*4+2] = data[p*3+2];
+              imageData.data[p*4+3] = 255;
+            }
+          } else { // RGBA or other — copy as-is
+            for (let p = 0; p < data.length; p++) imageData.data[p] = data[p];
+          }
+
+          ctx.putImageData(imageData, 0, 0);
+          // Get as JPEG at 85% quality to keep payload manageable
+          const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+          imgs.push({ b64, width, height, mediaType: 'image/jpeg' });
+        } catch(_) { /* skip unresolvable image objects */ }
+      }
+    }
+  } catch(_) {}
+  return imgs;
+}
+
+// Deduplicate images — same dimensions + same first 200 bytes = duplicate
+function dedupImages(imgs) {
+  const seen = new Set();
+  return imgs.filter(img => {
+    const key = img.width + 'x' + img.height + '_' + img.b64.slice(0, 200);
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+}
+
 async function exPdf(file){
   return new Promise((res,rej)=>{
     const r=new FileReader();
@@ -586,16 +665,40 @@ async function exPdf(file){
         const arr=new Uint8Array(e.target.result);
         if(typeof pdfjsLib==='undefined'){
           const b64=btoa(Array.from(arr,b=>String.fromCharCode(b)).join(''));
-          res({t:'b64',d:b64});return;
+          res({t:'b64',d:b64,imgs:[]});return;
         }
         const pdf=await pdfjsLib.getDocument({data:arr}).promise;
+        const totalPages=pdf.numPages;
+        const pagesToRead=Math.min(totalPages,300);
         let txt='';
-        for(let i=1;i<=Math.min(pdf.numPages,90);i++){
+        const allImgs=[];
+
+        for(let i=1;i<=pagesToRead;i++){
           const pg=await pdf.getPage(i);
+
+          // Extract text
           const ct=await pg.getTextContent();
-          txt+=ct.items.map(s=>s.str).join(' ')+'\n';
+          const pageTxt=ct.items.map(s=>s.str).join(' ');
+          txt += '[PAGE '+i+'] '+pageTxt+'\n';
+
+          // Extract embedded images from this page
+          const pageImgs=await extractPageImages(pg);
+          // Tag each image with its page number so Claude has context
+          pageImgs.forEach(img=>{ img.page=i; allImgs.push(img); });
+
+          if(i%20===0){
+            const el=document.getElementById('ps1');
+            if(el)el.lastChild.textContent=' Extracted '+i+'/'+pagesToRead+' pages…';
+          }
         }
-        res({t:'txt',d:txt});
+
+        // Deduplicate and limit to most meaningful images
+        const deduped=dedupImages(allImgs);
+
+        const el2=document.getElementById('ps2');
+        if(el2)el2.lastChild.textContent=' Found '+deduped.length+' diagrams & images';
+
+        res({t:'txt',d:txt,imgs:deduped});
       }catch(e){rej(e);}
     };
     r.onerror=rej;r.readAsArrayBuffer(file);
@@ -603,25 +706,100 @@ async function exPdf(file){
 }
 
 // ── CARD GENERATION ──
+// Match images to text chunks by page number
+// Each image is tagged with img.page; text chunks contain [PAGE N] markers
+function imgsForChunk(imgs, chunkText, maxImgs=4) {
+  // Find which pages are mentioned in this text chunk
+  const pageNums = new Set();
+  const matches = chunkText.matchAll(/\[PAGE (\d+)\]/g);
+  for (const m of matches) pageNums.add(parseInt(m[1]));
+  if (!pageNums.size) return [];
+
+  // Get images from those pages, prioritise larger images (more likely to be real diagrams)
+  const relevant = imgs
+    .filter(img => pageNums.has(img.page))
+    .sort((a, b) => (b.width * b.height) - (a.width * a.height))
+    .slice(0, maxImgs);
+  return relevant;
+}
+
+// Build a Claude message with text + optional images interleaved
+function buildMsg(txt, imgs, promptTxt) {
+  if (!imgs || !imgs.length) {
+    return [{role:'user', content: promptTxt + '\n\nPDF CONTENT:\n' + txt}];
+  }
+  // Interleave images before the text so Claude sees diagrams with their context
+  const contentBlocks = [];
+  // Add images first with a label
+  imgs.forEach((img, idx) => {
+    contentBlocks.push({
+      type: 'text',
+      text: '[EMBEDDED DIAGRAM ' + (idx+1) + ' from page ' + img.page + ' — analyse this image and use it to enrich flashcard mechanism explanations below]'
+    });
+    contentBlocks.push({
+      type: 'image',
+      source: { type: 'base64', media_type: img.mediaType, data: img.b64 }
+    });
+  });
+  contentBlocks.push({ type: 'text', text: promptTxt + '\n\nPDF CONTENT:\n' + txt });
+  return [{role:'user', content: contentBlocks}];
+}
+
 async function genCards(content,nm,exam){
   setS(3);
   const n=parseInt(S.cpc)||8,dl=S.dlv||'detailed',foc=S.foc?'PRIORITY FOCUS: '+S.foc:'';
-  const dmap={concise:'Answers: 2-3 sentences. Brief mechanism (1 sentence).',detailed:'Answers: thorough with clear mechanism.',deep:'Answers: comprehensive from first principles — molecular→cellular→tissue→organ→clinical.'};
-  let msgs;
+  const dmap={
+    concise:'Answers: 2-3 sentences. Brief mechanism (1 sentence).',
+    detailed:'Answers: thorough with clear mechanism. If a diagram is provided, reference what it shows.',
+    deep:'Answers: comprehensive from first principles — molecular→cellular→tissue→organ→clinical. If diagrams are provided, describe and incorporate them explicitly into the mechanism field.'
+  };
+  const imgs = content.imgs || [];
+  const hasImgs = imgs.length > 0;
+
+  if(hasImgs) toast(imgs.length+' diagrams found — Claude will use them in explanations','success');
+
   if(content.t==='b64'){
-    msgs=[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:content.d}},{type:'text',text:prompt(nm,exam,n,dmap[dl],foc)}]}];
-  } else {
-    const chunks=chk(content.d,5500),all=[];
-    for(let i=0;i<Math.min(chunks.length,7);i++){setS(i<2?3:4);const c=await claude([{role:'user',content:prompt(nm,exam,n,dmap[dl],foc)+'\n\nPDF CONTENT:\n'+chunks[i]}]);all.push(...c);}
-    return all;
+    setS(4);
+    return await claude([{role:'user',content:[
+      {type:'document',source:{type:'base64',media_type:'application/pdf',data:content.d}},
+      {type:'text',text:prompt(nm,exam,n,dmap[dl],foc,true)}
+    ]}]);
   }
-  setS(4);return await claude(msgs);
+
+  const CHUNK_SIZE = 100000;
+  const chunks = chk(content.d, CHUNK_SIZE);
+  const totalChunks = chunks.length;
+  const all = [];
+
+  function updStep(i,total){
+    const el=document.getElementById('ps3');
+    if(el)el.lastChild.textContent=' Generating cards — section '+(i+1)+' of '+total+'…';
+  }
+
+  toast('Processing '+totalChunks+' sections'+(hasImgs?' with '+imgs.length+' diagrams':'')+'…','info');
+
+  for(let i=0;i<totalChunks;i++){
+    setS(i===0?3:4);
+    updStep(i,totalChunks);
+    try{
+      // Get images relevant to this chunk's pages (max 4 per call to keep payload reasonable)
+      const chunkImgs = imgsForChunk(imgs, chunks[i], 4);
+      const msgs = buildMsg(chunks[i], chunkImgs, prompt(nm,exam,n,dmap[dl],foc,chunkImgs.length>0));
+      const c = await claude(msgs, chunkImgs);
+      all.push(...c);
+    }catch(e){
+      toast('Section '+(i+1)+' skipped: '+e.message,'error');
+    }
+    if(i<totalChunks-1) await new Promise(r=>setTimeout(r,900));
+  }
+  return all;
 }
 
-function prompt(nm,exam,n,di,foc){
+function prompt(nm,exam,n,di,foc,hasImages=false){
 return `You are a senior USMLE/MCCQE question writer with 20+ years experience at UWorld, AMBOSS, and NBME. Generate exactly ${n} high-yield flashcards for ${exam} from: "${nm}".
 ${foc}
-
+${hasImages ? `
+DIAGRAMS PROVIDED: You have been given embedded diagrams/images from this PDF. For each relevant diagram:\n- Identify what it depicts (cycle, pathway, mechanism, anatomy, chart)\n- Reference it explicitly in the mechanism field: "As shown in the diagram above, ..."\n- Extract any labels, arrows, or steps visible in the image\n- Use the visual information to make the mechanism explanation richer and more specific than text alone could provide\n` : ""}
 MANDATORY QUESTION FORMAT — Choose the most appropriate per card:
 
 FORMAT A — Clinical Vignette (~60%): "A [age]-year-old [sex] presents with [complaint] for [duration]. [PMH/meds/social]. Exam: [findings]. Labs/imaging: [real numbers]. What is the most likely [diagnosis/mechanism/next step]?"
@@ -653,10 +831,18 @@ Return ONLY valid JSON array, no markdown, no backticks:
 [{"question":"...","answer":"Direct answer. Key associations. Buzzwords. Mnemonic if applicable.","mechanism":"3-5 sentences from molecular level up — the WHY","topic":"System — Specific Topic","system":"Cardiovascular|Respiratory|Renal|Neurology|Biochemistry|Pharmacology|Microbiology|Immunology|GI|Endocrine|Hematology|MSK|Reproductive|Psychiatry|Dermatology|Ophthalmology","difficulty":"easy|medium|hard","exam":"${exam}","buzzwords":"2-4 key buzzwords comma-separated"}]`;
 }
 
-async function claude(msgs){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
+async function claude(msgs, chunkImgs=[]){
+  // Use Vercel serverless proxy to avoid CORS — proxy at /api/claude forwards to Anthropic
+  const endpoint = window.location.hostname === 'localhost' || window.location.protocol === 'file:'
+    ? 'https://api.anthropic.com/v1/messages'
+    : '/api/claude';
+
+  const headers = {'Content-Type':'application/json','x-api-key':S.apiKey};
+  if (endpoint.includes('anthropic.com')) headers['anthropic-version'] = '2023-06-01';
+
+  const r=await fetch(endpoint,{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':S.apiKey,'anthropic-version':'2023-06-01'},
+    headers,
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,messages:msgs})
   });
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+r.status);}
@@ -664,7 +850,25 @@ async function claude(msgs){
   const txt=d.content.filter(c=>c.type==='text').map(c=>c.text).join('');
   try{
     const cards=JSON.parse(txt.replace(/```json|```/g,'').trim());
-    return cards.map((c,i)=>({...c,id:Date.now()+'_'+i,mastery:0,interval:1,ef:2.5,due:new Date().toISOString(),rev:0}));
+    // Attach the largest image from this chunk to cards that mention visual concepts
+    // so it shows on the flashcard back during study
+    const diagramImg = chunkImgs.length > 0
+      ? chunkImgs.sort((a,b)=>(b.width*b.height)-(a.width*a.height))[0]
+      : null;
+    const visualKeywords = /cycle|pathway|mechanism|cascade|diagram|flowchart|receptor|anatomy|synthesis|metabolism|transport|signaling|structure/i;
+    return cards.map((c,i)=>{
+      const needsDiagram = diagramImg && (
+        visualKeywords.test(c.question) ||
+        visualKeywords.test(c.mechanism||'') ||
+        visualKeywords.test(c.topic||'')
+      );
+      return {
+        ...c,
+        id:Date.now()+'_'+i,
+        mastery:0,interval:1,ef:2.5,due:new Date().toISOString(),rev:0,
+        ...(needsDiagram ? {diagramB64: diagramImg.b64, diagramMediaType: diagramImg.mediaType} : {})
+      };
+    });
   }catch{throw new Error('Could not parse flashcards. Try again.');}
 }
 
@@ -797,6 +1001,15 @@ function loadCard(){
   document.getElementById('sQ').textContent=c.question;
   document.getElementById('sA').textContent=c.answer;
   document.getElementById('sMech').innerHTML=c.mechanism?'<strong>⚡ Mechanism:</strong> '+c.mechanism:'';
+  // Show embedded diagram if card has one
+  const diagEl=document.getElementById('sDiagram');
+  const diagImg=document.getElementById('sDiagramImg');
+  if(c.diagramB64 && diagEl && diagImg){
+    diagImg.src='data:'+c.diagramMediaType+';base64,'+c.diagramB64;
+    diagEl.style.display='block';
+  } else if(diagEl){
+    diagEl.style.display='none';
+  }
   document.getElementById('sBuzz').innerHTML=c.buzzwords?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7" stroke-width="3"/></svg><strong style="color:var(--txt)">Buzzwords:</strong> '+c.buzzwords:'';
   document.getElementById('sTopic').textContent=c.topic||c.system||'';
   document.getElementById('fcard').classList.remove('flipped');
