@@ -197,13 +197,12 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
 .stxt{font-size:.77rem;color:var(--mut);white-space:nowrap}
 
 /* ── FLIP CARD ── */
-.fcard-wrap{perspective:1000px;cursor:pointer;margin-bottom:.875rem}
-.fcard-inner{position:relative;transform-style:preserve-3d;transition:transform .48s cubic-bezier(.4,0,.2,1)}
-.fcard-wrap.flipped .fcard-inner{transform:rotateY(180deg)}
-.fside{backface-visibility:hidden;background:var(--sur);border:1px solid var(--bdr);border-radius:18px;padding:1.625rem;min-height:220px;display:flex;flex-direction:column}
-.fback-side{transform:rotateY(180deg)}
-/* When flipped, the back becomes visible - we need to set height dynamically via JS */
-.fcard-wrap.flipped .fcard-inner{height:auto}
+.fcard-wrap{margin-bottom:.875rem}
+.fcard-inner{position:relative}
+.fside{background:var(--sur);border:1px solid var(--bdr);border-radius:18px;padding:1.625rem;display:flex;flex-direction:column;cursor:pointer}
+.fback-side{display:none}
+.fcard-wrap.flipped .fside:first-child{display:none}
+.fcard-wrap.flipped .fback-side{display:flex}
 .clbl{font-size:.67rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase;margin-bottom:.75rem;display:flex;align-items:center;gap:4px}
 .clbl.q{color:var(--acc2)}.clbl.a{color:var(--grn)}
 .cbody{font-size:.975rem;line-height:1.7;flex:1}
@@ -881,26 +880,51 @@ async function genCards(content,nm,exam){
 }
 
 function mkPrompt(nm,exam,n,di,foc,hasImgs){
-return `You are a senior USMLE/MCCQE question writer. Generate exactly ${n} high-yield flashcards for ${exam} from: "${nm}".
+return `You are an elite USMLE Step 1/2CK question writer with 20 years at UWorld, NBME, and AMBOSS. Generate exactly ${n} board-quality flashcards for ${exam} from: "${nm}".
 ${foc}
-${hasImgs?'DIAGRAMS PROVIDED: Incorporate diagram content into mechanism explanations explicitly.':''}
+${hasImgs?'DIAGRAMS PROVIDED: Describe exactly what the diagram shows and incorporate its labels/arrows/steps into the mechanism field.':''}
 
-MANDATORY FORMAT — use whichever fits each concept:
-FORMAT A (60%): Clinical vignette — "A [age]-year-old [sex] presents with [symptoms + labs with real values]. Which [enzyme/mechanism/diagnosis/next step]?"
-FORMAT B: Mechanism — "A patient with [condition] receives [drug]. Which mechanism explains [effect]?"
-FORMAT C: High-yield association — include the classic buzzword IN the stem
-FORMAT D: Clinical decision — "...now develops [finding]. Most appropriate next step?"
+══ QUESTION STANDARDS (NON-NEGOTIABLE) ══
 
-RULES:
-- Real lab values (Na 128 mEq/L, Hb 6.2 g/dL), realistic vitals and ages
-- Include ethnicity when clinically relevant
-- Board buzzwords IN the stem: mousy odor (PKU), orange crystals in diaper (Lesch-Nyhan), boot-shaped heart (ToF), Kayser-Fleischer rings (Wilson)
-- ${di}
+For MEDIUM and HARD cards use FULL clinical vignettes (3-5 sentences):
+"A [specific age]-year-old [sex] with [relevant PMHx/ethnicity if applicable] presents to [clinic/ED/office] with [chief complaint] for [duration]. [Vital signs with numbers]. [Physical exam findings]. [Lab results with REAL values e.g. serum uric acid 11.2 mg/dL, WBC 14,000/μL, Na⁺ 128 mEq/L]. [Imaging if relevant]. Which of the following is the most likely [diagnosis / underlying mechanism / next best step]?"
 
-MECHANISM FIELD — NOT a restatement. Explain: molecular defect → cellular effect → organ → clinical signs. Min 3 sentences.
+QUESTION STEM TYPES — rotate through all:
+1. "Which enzyme is most likely deficient?" (with vignette)
+2. "What is the most likely diagnosis?"
+3. "Which of the following best explains this finding?"
+4. "What is the most appropriate next step in management?"
+5. "Which drug mechanism is responsible for this side effect?"
+6. "This patient's condition is BEST explained by which pathophysiological mechanism?"
+7. "Which finding would you MOST expect on [labs/imaging/biopsy]?"
 
-Return ONLY valid JSON array, no markdown, no backticks:
-[{"question":"...","answer":"Direct answer. Key associations. Mnemonic if applicable.","mechanism":"3-5 sentences from molecular level — the WHY","topic":"System — Specific Topic","system":"Biochemistry|Cardiovascular|Respiratory|Renal|Neurology|Pharmacology|Microbiology|Immunology|GI|Endocrine|Hematology|MSK|Reproductive|Psychiatry|Dermatology","difficulty":"easy|medium|hard","exam":"${exam}","buzzwords":"2-4 buzzwords"}]`;
+DIFFICULTY GUIDE:
+- easy: single buzzword→diagnosis recall. Short. No vignette needed.
+- medium: 3-sentence vignette + 1 lab finding + mechanism question
+- hard: 4-5 sentence vignette, multiple findings, requires multi-step reasoning, may involve distinguishing similar conditions or understanding downstream consequences
+
+ABSOLUTE RULES:
+✓ Real specific lab values — never "elevated" — always give the number (uric acid 11.2 mg/dL, not "elevated uric acid")
+✓ Specify age, sex, ethnicity when diagnostically relevant (Ashkenazi Jewish → Tay-Sachs/Gaucher; African American male → G6PD; Mediterranean → beta-thalassemia)
+✓ Classic buzzwords MUST appear in the question stem itself, not just the answer
+✓ Never reveal the diagnosis in the question — force reasoning
+✓ ${di}
+
+ANSWER FORMAT:
+Line 1: The direct answer (enzyme name, drug, diagnosis)
+Line 2: Key diagnostic associations and buzzwords
+Line 3: Classic mnemonic if one exists (e.g. "HGPRT: Hyperuricemia, Gout, Pissed off, Red crystals, Tense muscles")
+
+MECHANISM FIELD (THIS IS THE CORE VALUE OF THIS APP):
+Must be 4-6 sentences explaining:
+1. Normal function of the enzyme/pathway/receptor
+2. What the mutation/deficiency/drug does at molecular level  
+3. What accumulates or is depleted as a result
+4. Why THOSE SPECIFIC symptoms occur (not just "this causes disease")
+5. Clinical correlation — how the biochemistry produces the bedside findings
+
+Return ONLY valid JSON array. No markdown, no backticks, no explanation:
+[{"question":"Full clinical vignette or focused question","answer":"Answer\nKey associations and buzzwords\nMnemonic if applicable","mechanism":"4-6 sentences explaining normal function → defect → accumulation → symptoms → clinical signs","topic":"System — Specific Subtopic","system":"Biochemistry|Cardiovascular|Respiratory|Renal|Neurology|Pharmacology|Microbiology|Immunology|GI|Endocrine|Hematology|MSK|Reproductive|Psychiatry|Dermatology","difficulty":"easy|medium|hard","exam":"${exam}","buzzwords":"3-5 classic board buzzwords comma-separated"}]`;
 }
 
 // ══ API CALL ══
@@ -1099,10 +1123,7 @@ function loadCard(){
   document.getElementById('s-buzz').textContent=c.buzzwords?'🏷 '+c.buzzwords:'';
   document.getElementById('s-topic').textContent=c.topic||c.system||'';
   // Reset flip
-  const fc=document.getElementById('fcard');
-  const fi=document.getElementById('fcard-inner');
-  fc.classList.remove('flipped');
-  fi.style.height='';
+  document.getElementById('fcard').classList.remove('flipped');
   G.flip=false;
   document.getElementById('rrow').style.display='none';
   document.getElementById('flip-hint').style.display='flex';
@@ -1110,17 +1131,11 @@ function loadCard(){
 
 function flipCard(){
   if(G.flip)return;G.flip=true;
-  const fc=document.getElementById('fcard');
-  const fi=document.getElementById('fcard-inner');
-  const back=fi.querySelector('.fback-side');
-  fc.classList.add('flipped');
+  document.getElementById('fcard').classList.add('flipped');
   document.getElementById('rrow').style.display='flex';
   document.getElementById('flip-hint').style.display='none';
-  setTimeout(()=>{
-    const h=Math.max(back.scrollHeight,220);
-    fi.style.height=h+'px';
-    fc.style.minHeight=h+'px';
-  },500);
+  // Scroll to top of study view so answer is fully visible
+  document.getElementById('study').scrollTop=0;
 }
 
 function rate(q){
