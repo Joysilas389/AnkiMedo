@@ -214,8 +214,8 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
 
 /* ══ RESPONSIVE ══ */
 @media(max-width:767px){
-  #sidebar{transform:translateX(-100%)}
-  #sidebar.open{transform:translateX(0)}
+  #sidebar{transform:translateX(-100%);pointer-events:none}
+  #sidebar.open{transform:translateX(0);pointer-events:all}
   #main{margin-left:0 !important}
   .cgrid{grid-template-columns:1fr}
   #ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;display:none}
