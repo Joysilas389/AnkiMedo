@@ -110,18 +110,20 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
 .md{width:6px;height:6px;border-radius:50%;background:var(--bdr)}.md.on{background:var(--grn)}
 
 /* ══ STUDY ══ */
-#studyView{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}
+#studyView{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;align-items:flex-start;justify-content:flex-start;padding:1rem 1rem 2rem;overflow-y:auto;-webkit-overflow-scrolling:touch}
 #studyView.active{display:flex}
-.sw{width:100%;max-width:660px}
+.sw{width:100%;max-width:660px;margin:0 auto}
 .sprog{display:flex;align-items:center;gap:.875rem;margin-bottom:1.75rem}
 .strack{flex:1;height:4px;background:var(--bdr);border-radius:2px;overflow:hidden}
 .sfill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px;transition:width .4s ease}
 .stxt{font-size:.78rem;color:var(--mut);white-space:nowrap}
-.fcard{width:100%;min-height:330px;perspective:1000px;cursor:pointer}
-.finner{position:relative;width:100%;min-height:330px;transform-style:preserve-3d;transition:transform .48s cubic-bezier(.4,0,.2,1)}
+.fcard{width:100%;perspective:1000px;cursor:pointer;min-height:240px}
+.finner{position:relative;width:100%;min-height:240px;transform-style:preserve-3d;transition:transform .48s cubic-bezier(.4,0,.2,1)}
 .fcard.flipped .finner{transform:rotateY(180deg)}
-.ffront,.fback{position:absolute;width:100%;min-height:330px;backface-visibility:hidden;background:var(--sur);border:1px solid var(--bdr);border-radius:20px;padding:1.875rem;display:flex;flex-direction:column}
+.ffront,.fback{position:absolute;width:100%;min-height:240px;backface-visibility:hidden;background:var(--sur);border:1px solid var(--bdr);border-radius:20px;padding:1.5rem;display:flex;flex-direction:column;overflow:visible}
 .fback{transform:rotateY(180deg)}
+/* When flipped, expand the inner to match back content height */
+.fcard.flipped .finner{height:auto}
 .clbl{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.875rem;display:flex;align-items:center;gap:5px}
 .clbl.q{color:var(--acc2)}.clbl.a{color:var(--grn)}
 .cbody{flex:1;font-size:1rem;line-height:1.7;color:var(--txt)}
@@ -134,7 +136,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
 .rbtn.h{border-color:var(--gld);color:var(--gld);background:rgba(245,158,11,.07)}.rbtn.h:hover{background:rgba(245,158,11,.17)}
 .rbtn.g{border-color:var(--grn);color:var(--grn);background:rgba(16,185,129,.07)}.rbtn.g:hover{background:rgba(16,185,129,.17)}
 .rbtn.e{border-color:var(--acc);color:var(--acc);background:rgba(59,130,246,.07)}.rbtn.e:hover{background:rgba(59,130,246,.17)}
-.sc-btn{position:fixed;top:1.125rem;right:1.125rem}
+.sc-btn{position:sticky;top:0;align-self:flex-end;margin-bottom:.5rem;z-index:10;background:var(--bg);border-radius:9px}
 
 /* ══ STATS ══ */
 .sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.875rem;margin-bottom:1.75rem}
@@ -324,7 +326,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
       <div class="d-flex align-items-center justify-content-between mb-3">
         <h4 style="font-family:var(--fh);font-weight:800;margin:0">My Decks</h4>
         <div class="d-flex gap-2">
-          <button class="btn-danger" onclick="clearEmptyDecks()" title="Remove all empty decks">
+          <button class="btn-out" onclick="clearEmptyDecks()" title="Remove all empty decks">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
             Clear Empty
           </button>
@@ -465,10 +467,12 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
 
 <!-- ════════ STUDY VIEW ════════ -->
 <div id="studyView">
-  <button class="ic-btn sc-btn" onclick="closeStudy()" aria-label="Close">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-  </button>
   <div class="sw">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:.5rem">
+      <button class="ic-btn" onclick="closeStudy()" aria-label="Close" style="background:var(--sur);border-color:var(--bdr2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
     <div class="sprog">
       <div class="strack"><div class="sfill" id="sfill" style="width:0%"></div></div>
       <span class="stxt" id="stxt">0 / 0</span>
@@ -1227,7 +1231,11 @@ function loadCard(){
   }
   document.getElementById('sBuzz').innerHTML=c.buzzwords?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7" stroke-width="3"/></svg><strong style="color:var(--txt)">Buzzwords:</strong> '+c.buzzwords:'';
   document.getElementById('sTopic').textContent=c.topic||c.system||'';
-  document.getElementById('fcard').classList.remove('flipped');
+  const fc=document.getElementById('fcard');
+  const inner=fc.querySelector('.finner');
+  fc.classList.remove('flipped');
+  fc.style.minHeight='';
+  inner.style.height='';
   S.flip=false;
   document.getElementById('rrow').style.display='none';
   document.getElementById('fhint').style.display='flex';
@@ -1235,9 +1243,18 @@ function loadCard(){
 
 function flipCard(){
   if(S.flip)return;S.flip=true;
-  document.getElementById('fcard').classList.add('flipped');
+  const fc=document.getElementById('fcard');
+  const inner=fc.querySelector('.finner');
+  const back=fc.querySelector('.fback');
+  fc.classList.add('flipped');
   document.getElementById('rrow').style.display='flex';
   document.getElementById('fhint').style.display='none';
+  // After flip animation, set container height to match back content
+  setTimeout(()=>{
+    const h=back.scrollHeight;
+    inner.style.height=h+'px';
+    fc.style.minHeight=h+'px';
+  }, 500);
 }
 
 function rate(q){
