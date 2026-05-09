@@ -767,6 +767,53 @@ async function exDocx(file){
 }
 
 
+async function extractPageImages(page){
+  // Safely extract embedded bitmap images from a PDF page via PDF.js operator list
+  const imgs=[];
+  try{
+    if(!pdfjsLib||!pdfjsLib.OPS) return imgs;
+    const ops=await page.getOperatorList();
+    const {OPS}=pdfjsLib;
+    for(let j=0;j<ops.fnArray.length;j++){
+      if(ops.fnArray[j]===OPS.paintImageXObject||ops.fnArray[j]===OPS.paintInlineImageXObject){
+        const ref=ops.argsArray[j][0];
+        try{
+          let imgData=null;
+          if(page.objs.has(ref)) imgData=page.objs.get(ref);
+          else if(page.commonObjs.has(ref)) imgData=page.commonObjs.get(ref);
+          if(!imgData||!imgData.data||!imgData.width||!imgData.height) continue;
+          const {width,height,data,kind}=imgData;
+          // Skip tiny decorative images
+          if(width<100||height<100) continue;
+          if(width/height>15||height/width>15) continue;
+          const canvas=document.createElement('canvas');
+          canvas.width=width;canvas.height=height;
+          const ctx=canvas.getContext('2d');
+          const id=ctx.createImageData(width,height);
+          if(kind===2){ // RGB
+            for(let p=0;p<width*height;p++){id.data[p*4]=data[p*3];id.data[p*4+1]=data[p*3+1];id.data[p*4+2]=data[p*3+2];id.data[p*4+3]=255;}
+          } else {
+            for(let p=0;p<Math.min(data.length,id.data.length);p++) id.data[p]=data[p];
+          }
+          ctx.putImageData(id,0,0);
+          const b64=canvas.toDataURL('image/jpeg',0.80).split(',')[1];
+          if(b64) imgs.push({b64,width,height,mediaType:'image/jpeg'});
+        }catch(_){}
+      }
+    }
+  }catch(_){}
+  return imgs;
+}
+
+function dedupImages(imgs){
+  const seen=new Set();
+  return imgs.filter(img=>{
+    const k=img.width+'x'+img.height+'_'+img.b64.slice(0,150);
+    if(seen.has(k))return false;
+    seen.add(k);return true;
+  });
+}
+
 async function exPdf(file){
   return new Promise((res,rej)=>{
     const r=new FileReader();
@@ -782,38 +829,30 @@ async function exPdf(file){
         const pagesToRead=Math.min(totalPages,300);
         let txt='';
         const allImgs=[];
-
         for(let i=1;i<=pagesToRead;i++){
           const pg=await pdf.getPage(i);
-
-          // Extract text
           const ct=await pg.getTextContent();
-          const pageTxt=ct.items.map(s=>s.str).join(' ');
-          txt += '[PAGE '+i+'] '+pageTxt+'\n';
-
-          // Extract embedded images from this page
-          const pageImgs=await extractPageImages(pg);
-          // Tag each image with its page number so Claude has context
-          pageImgs.forEach(img=>{ img.page=i; allImgs.push(img); });
-
+          txt+='[PAGE '+i+'] '+ct.items.map(s=>s.str).join(' ')+'\n';
+          // Try to extract embedded images — skip silently if it fails
+          try{
+            const pi=await extractPageImages(pg);
+            pi.forEach(img=>{img.page=i;allImgs.push(img);});
+          }catch(_){}
           if(i%20===0){
             const el=document.getElementById('ps1');
             if(el)el.lastChild.textContent=' Extracted '+i+'/'+pagesToRead+' pages…';
           }
         }
-
-        // Deduplicate and limit to most meaningful images
         const deduped=dedupImages(allImgs);
-
         const el2=document.getElementById('ps2');
-        if(el2)el2.lastChild.textContent=' Found '+deduped.length+' diagrams & images';
-
+        if(el2&&deduped.length) el2.lastChild.textContent=' Found '+deduped.length+' diagrams';
         res({t:'txt',d:txt,imgs:deduped});
       }catch(e){rej(e);}
     };
     r.onerror=rej;r.readAsArrayBuffer(file);
   });
 }
+
 
 // ── CARD GENERATION ──
 // Match images to text chunks by page number
