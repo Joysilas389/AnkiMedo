@@ -423,7 +423,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
           Flashcard Generation
         </h5>
         <div class="row g-3">
-          <div class="col-md-6"><label class="flbl">Cards per content section</label><input type="number" class="finp" id="cpC" value="8" min="3" max="20"/></div>
+          <div class="col-md-6"><label class="flbl">Cards per section <span style="color:var(--mut);font-weight:400">(3–5 recommended)</span></label><input type="number" class="finp" id="cpC" value="5" min="3" max="5"/></div>
           <div class="col-md-6"><label class="flbl">Detail level</label>
             <select class="finp" id="dlvl">
               <option value="concise">Concise (fast)</option>
@@ -528,7 +528,7 @@ async function init(){
   if(raw){try{const p=JSON.parse(raw);const{apiKey:_,...r}=p;S={...S,...r};}catch{}}
   const k=await decK();
   if(k){S.apiKey=k;document.getElementById('apiIn').value='••••••••••••••••••••••••••';showEncBadge();}
-  document.getElementById('cpC').value=S.cpc||8;
+  document.getElementById('cpC').value=S.cpc||5;
   document.getElementById('dlvl').value=S.dlv||'detailed';
   document.getElementById('foc').value=S.foc||'';
   updDot();rdDecks();rdBrowse();rdDue();rdStats();updBadge();setupDrop();
@@ -627,7 +627,7 @@ async function handleImages(files){
   const nm=files.length===1
     ? files[0].name.replace(/\.[^.]+$/,'')
     : 'Screenshots — '+new Date().toLocaleDateString();
-  const n=parseInt(S.cpc)||8;
+  const n=Math.min(parseInt(S.cpc)||5, 5); // Max 5 per call
   const dl=S.dlv||'detailed';
   const dmap={
     concise:'Answers: 2-3 sentences. Brief mechanism.',
@@ -640,7 +640,7 @@ async function handleImages(files){
   try{
     const allCards=[];
     // Process images in batches of 3 to keep payload under ~2MB per request
-    const BATCH=3;
+    const BATCH=1; // 1 image per call — stays under Vercel 10s limit
     for(let i=0;i<files.slice(0,20).length;i+=BATCH){
       const batch=Array.from(files).slice(i,i+BATCH);
       setS(3);
@@ -857,7 +857,8 @@ function buildMsg(txt, imgs, promptTxt) {
 
 async function genCards(content,nm,exam){
   setS(3);
-  const n=parseInt(S.cpc)||8,dl=S.dlv||'detailed',foc=S.foc?'PRIORITY FOCUS: '+S.foc:'';
+  const n=Math.min(parseInt(S.cpc)||5, 5); // Max 5 per call — keeps response under 9s
+  const dl=S.dlv||'detailed',foc=S.foc?'PRIORITY FOCUS: '+S.foc:'';
   const dmap={
     concise:'Answers: 2-3 sentences. Brief mechanism (1 sentence).',
     detailed:'Answers: thorough with clear mechanism. If a diagram is provided, reference what it shows.',
@@ -890,7 +891,7 @@ async function genCards(content,nm,exam){
     ]}],[]);
   }
 
-  const CHUNK_SIZE = 100000;
+  const CHUNK_SIZE = 15000; // Small chunks → fast API calls → beats Vercel 10s limit
   const chunks = chk(content.d, CHUNK_SIZE);
   const totalChunks = chunks.length;
   const all = [];
@@ -966,13 +967,13 @@ async function claude(msgs, chunkImgs=[]){
 
   // 55s timeout — Vercel serverless functions max at 60s
   const ctrl=new AbortController();
-  const timer=setTimeout(()=>ctrl.abort(),55000);
+  const timer=setTimeout(()=>ctrl.abort(),9000); // Vercel free = 10s max
   let r;
   try{
-    r=await fetch(endpoint,{method:'POST',headers,signal:ctrl.signal,body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,messages:msgs})});
+    r=await fetch(endpoint,{method:'POST',headers,signal:ctrl.signal,body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2048,messages:msgs})});
   }catch(fe){
     clearTimeout(timer);
-    if(fe.name==='AbortError') throw new Error('Request timed out — try a smaller file or fewer cards per section');
+    if(fe.name==='AbortError') throw new Error('Timeout — reduce "Cards per section" to 3-5 in Settings and try again');
     throw new Error('Network error: '+fe.message+'. Check your internet connection.');
   }
   clearTimeout(timer);
