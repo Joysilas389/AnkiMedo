@@ -185,6 +185,33 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
 @keyframes su{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
 .titem.success{border-left:3px solid var(--grn)}.titem.error{border-left:3px solid var(--red)}.titem.info{border-left:3px solid var(--acc)}
 
+/* ══ EDITOR MODAL ══ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;align-items:flex-end;justify-content:center;padding:0}
+.modal-overlay.active{display:flex}
+.modal-sheet{background:var(--sur);border-radius:20px 20px 0 0;width:100%;max-width:680px;max-height:92vh;overflow-y:auto;padding:1.5rem;-webkit-overflow-scrolling:touch}
+.modal-handle{width:40px;height:4px;background:var(--bdr2);border-radius:2px;margin:0 auto 1.25rem}
+.modal-title{font-family:var(--fh);font-size:1.05rem;font-weight:700;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between}
+.edit-field{margin-bottom:1rem}
+.edit-field label{font-size:.75rem;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.35rem}
+.edit-ta{background:var(--bg);border:1px solid var(--bdr);color:var(--txt);border-radius:10px;padding:.75rem;font-family:var(--fb);font-size:.875rem;width:100%;outline:none;resize:vertical;min-height:80px;line-height:1.6;transition:border-color .15s}
+.edit-ta:focus{border-color:var(--acc)}
+.edit-sel{background:var(--bg);border:1px solid var(--bdr);color:var(--txt);border-radius:10px;padding:.575rem .825rem;font-family:var(--fb);font-size:.85rem;width:100%;outline:none;transition:border-color .15s}
+.edit-sel:focus{border-color:var(--acc)}
+
+/* ══ QUIZ MODE ══ */
+.quiz-opt{width:100%;padding:.75rem 1rem;margin-bottom:.5rem;background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;color:var(--txt);font-family:var(--fb);font-size:.875rem;text-align:left;cursor:pointer;transition:all .2s;line-height:1.5}
+.quiz-opt:hover{border-color:var(--acc);background:rgba(59,130,246,.08)}
+.quiz-opt.correct{border-color:var(--grn)!important;background:rgba(16,185,129,.12)!important;color:var(--grn)!important}
+.quiz-opt.wrong{border-color:var(--red)!important;background:rgba(239,68,68,.12)!important;color:var(--red)!important}
+.quiz-opt.reveal{border-color:var(--grn)!important;background:rgba(16,185,129,.06)!important}
+
+/* ══ PROGRESS CHART ══ */
+.chart-bar-wrap{display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem}
+.chart-label{font-size:.78rem;color:var(--mut);width:90px;flex-shrink:0;text-align:right}
+.chart-bar{flex:1;height:18px;background:var(--bdr);border-radius:4px;overflow:hidden}
+.chart-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.chart-val{font-size:.75rem;color:var(--mut);width:35px;text-align:left;flex-shrink:0}
+
 /* ══ RESPONSIVE ══ */
 @media(max-width:767px){
   #sidebar{transform:translateX(-100%)}.#sidebar.open{transform:none}
@@ -250,6 +277,10 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
     <a class="s-lnk" data-page="stats" onclick="go('stats')">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Statistics
+    </a>
+    <a class="s-lnk" onclick="startQuiz()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-width="3"/></svg>
+      Quiz Mode
     </a>
     <a class="s-lnk" data-page="settings" onclick="go('settings')">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -383,7 +414,20 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
 
     <!-- STATS -->
     <div class="page" id="page-stats">
-      <h4 style="font-family:var(--fh);font-weight:800;margin-bottom:1.125rem">Statistics</h4>
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h4 style="font-family:var(--fh);font-weight:800;margin:0">Statistics</h4>
+        <div class="d-flex gap-2">
+          <button class="btn-out" onclick="startQuiz()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-width="3"/></svg>
+            Quiz Me
+          </button>
+          <button class="btn-out" onclick="exportAnki()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Anki
+          </button>
+        </div>
+      </div>
+      <div id="statSummary"></div>
       <div class="sgrid">
         <div class="scard"><div class="slbl">Total Cards</div><div class="sval b" id="stT">0</div></div>
         <div class="scard"><div class="slbl">Mastered</div><div class="sval g" id="stM">0</div></div>
@@ -462,6 +506,103 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ════════ CARD EDITOR MODAL ════════ -->
+<div class="modal-overlay" id="editModal" onclick="if(event.target===this)closeEditor()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">
+      <span>Edit Flashcard</span>
+      <button onclick="closeEditor()" style="background:none;border:none;color:var(--mut);cursor:pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="edit-field">
+      <label>Question</label>
+      <textarea class="edit-ta" id="editQ" rows="4"></textarea>
+    </div>
+    <div class="edit-field">
+      <label>Answer</label>
+      <textarea class="edit-ta" id="editA" rows="3"></textarea>
+    </div>
+    <div class="edit-field">
+      <label>⚡ Mechanism</label>
+      <textarea class="edit-ta" id="editM" rows="5"></textarea>
+    </div>
+    <div class="edit-field">
+      <label>Buzzwords</label>
+      <textarea class="edit-ta" id="editBw" rows="1" style="min-height:44px"></textarea>
+    </div>
+    <div class="row g-2 mb-3">
+      <div class="col-6">
+        <label class="edit-field" style="margin:0">
+          <label style="font-size:.75rem;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.35rem">Difficulty</label>
+          <select class="edit-sel" id="editDiff">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+      </div>
+      <div class="col-6">
+        <label class="edit-field" style="margin:0">
+          <label style="font-size:.75rem;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.35rem">System</label>
+          <select class="edit-sel" id="editSys">
+            <option>Biochemistry</option><option>Cardiovascular</option><option>Respiratory</option>
+            <option>Renal</option><option>Neurology</option><option>Pharmacology</option>
+            <option>Microbiology</option><option>Immunology</option><option>GI</option>
+            <option>Endocrine</option><option>Hematology</option><option>MSK</option>
+            <option>Reproductive</option><option>Psychiatry</option><option>Dermatology</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn-p" style="flex:1" onclick="saveEdit()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Save Changes
+      </button>
+      <button class="btn-danger" onclick="deleteCard()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ QUIZ MODE ════════ -->
+<div class="modal-overlay" id="quizModal" onclick="if(event.target===this)closeQuiz()">
+  <div class="modal-sheet" style="border-radius:20px;margin:1rem;max-height:88vh">
+    <div class="modal-handle"></div>
+    <div class="modal-title">
+      <span>Quiz Mode</span>
+      <button onclick="closeQuiz()" style="background:none;border:none;color:var(--mut);cursor:pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="study-prog" style="margin-bottom:1.25rem">
+      <div class="prog-track"><div class="prog-fill" id="quizProgFill" style="width:0%"></div></div>
+      <span class="prog-txt" id="quizProgTxt">0 / 0</span>
+    </div>
+    <div style="font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--acc2);margin-bottom:.75rem" id="quizTopic"></div>
+    <div style="font-size:.95rem;line-height:1.7;color:var(--txt);margin-bottom:1.25rem;font-family:var(--fb)" id="quizQ"></div>
+    <div id="quizOpts"></div>
+    <div id="quizFeedback" style="display:none;margin-top:1rem;padding:.875rem 1rem;background:rgba(59,130,246,.07);border-left:3px solid var(--acc);border-radius:0 10px 10px 0;font-size:.855rem;color:var(--mut);line-height:1.65"></div>
+    <button class="btn-p mt-3" id="quizNext" style="display:none;width:100%" onclick="nextQuiz()">
+      Next Question
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <div id="quizResult" style="display:none;text-align:center;padding:1.5rem 0">
+      <div style="font-size:2.5rem;margin-bottom:.5rem" id="quizResultEmoji"></div>
+      <div style="font-family:var(--fh);font-size:1.2rem;font-weight:800;margin-bottom:.25rem" id="quizResultScore"></div>
+      <div style="color:var(--mut);font-size:.875rem;margin-bottom:1.25rem" id="quizResultMsg"></div>
+      <div class="d-flex gap-2 justify-content-center">
+        <button class="btn-p" onclick="startQuiz()">Retry</button>
+        <button class="btn-out" onclick="closeQuiz()">Done</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -966,7 +1107,9 @@ async function genCards(content,nm,exam){
     }catch(e){
       console.error('Section '+(i+1)+' error:', e); toast('Section '+(i+1)+' error: '+e.message,'error');
     }
-    if(i<totalChunks-1) await new Promise(r=>setTimeout(r,900));
+    // Adaptive delay: at Tier 1 (20k TPM), each 30k-token chunk needs ~90s recovery
+    // We wait 3s minimum; if close to limit, the claude() fn handles longer waits
+    if(i<totalChunks-1) await new Promise(r=>setTimeout(r,3000));
   }
   return all;
 }
@@ -1039,11 +1182,31 @@ async function claude(msgs, chunkImgs=[]){
   }
   clearTimeout(timer);
 
-  if(r.status === 429) throw new Error('Rate limited — wait 30 seconds and try again');
+  // Read Anthropic rate limit headers to know exactly how long to wait
+  const remainingTokens = parseInt(r.headers.get('anthropic-ratelimit-tokens-remaining')||'999999');
+  const resetAfterMs   = parseFloat(r.headers.get('anthropic-ratelimit-tokens-reset')||'0') * 1000;
+
+  if(r.status === 429){
+    // Exact wait time from header, default 60s
+    const wait = resetAfterMs || 60000;
+    toast('Rate limit — waiting '+(wait/1000).toFixed(0)+'s then continuing…','info');
+    await new Promise(r=>setTimeout(r, wait + 500));
+    // Retry once after waiting
+    const r2 = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,messages:msgs})});
+    if(!r2.ok){const e=await r2.json().catch(()=>({}));throw new Error(e.error?.message||'API error after retry: '+r2.status);}
+    const d2=await r2.json();
+    const txt2=d2.content.filter(c=>c.type==='text').map(c=>c.text).join('');
+    const cards2=JSON.parse(txt2.replace(/\`\`\`json|\`\`\`/g,'').trim());
+    return cards2.map((c,i)=>({...c,id:Date.now()+'_'+i,mastery:0,interval:1,ef:2.5,due:new Date().toISOString(),rev:0}));
+  }
   if(r.status === 401) throw new Error('Invalid API key — check Settings');
   if(!r.ok) {
     const e = await r.json().catch(() => ({}));
     throw new Error(e.error?.message || 'API error ' + r.status);
+  }
+  // Proactively slow down if tokens running low (< 5000 remaining)
+  if(remainingTokens < 5000 && resetAfterMs > 0){
+    await new Promise(r=>setTimeout(r, Math.min(resetAfterMs, 30000)));
   }
 
   const d = await r.json();
@@ -1092,7 +1255,12 @@ function rdDecks(){
     const pct=d.cards.length?Math.round(mas/d.cards.length*100):0;
     return `<div class="dcard" onclick="openDeck('${d.id}')">
       <div class="dico" style="background:${clr[d.exam]||'rgba(59,130,246,.15)'}">${ico[d.exam]||'📚'}</div>
-      <div class="dnm">${x(d.name)}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="dnm" id="dnm-${d.id}">${x(d.name)}</div>
+        <button onclick="event.stopPropagation();renameDeck('${d.id}')" style="background:none;border:none;color:var(--mut);cursor:pointer;padding:2px;flex-shrink:0" title="Rename">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
       <div class="dinf">${d.cards.length} cards · ${d.exam} · <strong style="color:var(--gld)">${due} due</strong></div>
       <div class="dpbar"><div class="dpfil" style="width:${pct}%"></div></div>
       <div style="font-size:.7rem;color:var(--mut);margin-top:4px">${pct}% mastered</div>
@@ -1110,6 +1278,16 @@ function rdDecks(){
 }
 
 function openDeck(id){S.ae=null;S.ad=id;go('browse');}
+
+function renameDeck(id){
+  const deck = S.decks.find(d=>d.id===id);
+  if(!deck) return;
+  const name = window.prompt('Rename deck:', deck.name);
+  if(!name || !name.trim()) return;
+  deck.name = name.trim();
+  save(); rdDecks();
+  toast('Deck renamed','success');
+}
 
 function clearEmptyDecks(){
   const before = S.decks.length;
@@ -1153,6 +1331,9 @@ function fcH(c){
       <span class="bd ${c.difficulty||'medium'}">${c.difficulty||'medium'}</span>
       <span class="bs">${x(c.system||'General')}</span>
       <div class="mdots">${dots}</div>
+      <button onclick="event.stopPropagation();editCard('${c.id}')" style="background:none;border:none;color:var(--mut);cursor:pointer;margin-left:4px;padding:2px;flex-shrink:0" title="Edit card">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
     </div>
   </div>`;
 }
@@ -1330,6 +1511,241 @@ document.addEventListener('keydown',e=>{
   if(S.flip){if(e.key==='1')rate(0);if(e.key==='2')rate(1);if(e.key==='3')rate(3);if(e.key==='4')rate(5);}
   if(e.key==='Escape')closeStudy();
 });
+
+// ══════════════════════════════════════════
+// CARD EDITOR
+// ══════════════════════════════════════════
+let _editId = null;
+
+function editCard(id){
+  const card = aC().find(c=>c.id===id);
+  if(!card) return;
+  _editId = id;
+  document.getElementById('editQ').value = card.question||'';
+  document.getElementById('editA').value = card.answer||'';
+  document.getElementById('editM').value = card.mechanism||'';
+  document.getElementById('editBw').value = card.buzzwords||'';
+  document.getElementById('editDiff').value = card.difficulty||'medium';
+  document.getElementById('editSys').value = card.system||'Biochemistry';
+  document.getElementById('editModal').classList.add('active');
+}
+
+function closeEditor(){
+  document.getElementById('editModal').classList.remove('active');
+  _editId = null;
+}
+
+function saveEdit(){
+  if(!_editId) return;
+  for(const deck of S.decks){
+    const i = deck.cards.findIndex(c=>c.id===_editId);
+    if(i===-1) continue;
+    deck.cards[i].question   = document.getElementById('editQ').value.trim();
+    deck.cards[i].answer     = document.getElementById('editA').value.trim();
+    deck.cards[i].mechanism  = document.getElementById('editM').value.trim();
+    deck.cards[i].buzzwords  = document.getElementById('editBw').value.trim();
+    deck.cards[i].difficulty = document.getElementById('editDiff').value;
+    deck.cards[i].system     = document.getElementById('editSys').value;
+    break;
+  }
+  save(); closeEditor(); rdBrowse(); rdDue();
+  toast('Card updated','success');
+}
+
+function deleteCard(){
+  if(!_editId || !confirm('Delete this card?')) return;
+  for(const deck of S.decks){
+    const i = deck.cards.findIndex(c=>c.id===_editId);
+    if(i===-1) continue;
+    deck.cards.splice(i,1);
+    break;
+  }
+  save(); closeEditor(); rdBrowse(); rdDecks(); rdStats(); updBadge();
+  toast('Card deleted','info');
+}
+
+// ══════════════════════════════════════════
+// QUIZ MODE (UWorld-style 4-option MCQ)
+// ══════════════════════════════════════════
+let _quiz = { cards:[], idx:0, score:0, answered:false };
+
+function startQuiz(){
+  const cards = aC();
+  if(!cards.length){ toast('No cards to quiz — upload a file first','info'); return; }
+  _quiz.cards = shuffle([...cards]).slice(0, Math.min(cards.length, 40));
+  _quiz.idx = 0; _quiz.score = 0;
+  document.getElementById('quizResult').style.display='none';
+  document.getElementById('quizModal').classList.add('active');
+  loadQuiz();
+}
+
+function closeQuiz(){
+  document.getElementById('quizModal').classList.remove('active');
+}
+
+function loadQuiz(){
+  const card = _quiz.cards[_quiz.idx];
+  if(!card){ showQuizResult(); return; }
+  _quiz.answered = false;
+  const tot = _quiz.cards.length;
+  const pct = Math.round(_quiz.idx/tot*100);
+  document.getElementById('quizProgFill').style.width = pct+'%';
+  document.getElementById('quizProgTxt').textContent = (_quiz.idx+1)+' / '+tot;
+  document.getElementById('quizTopic').textContent = card.topic||card.system||'';
+  document.getElementById('quizQ').textContent = card.question;
+  document.getElementById('quizFeedback').style.display='none';
+  document.getElementById('quizNext').style.display='none';
+  document.getElementById('quizResult').style.display='none';
+
+  // Generate 3 wrong answers from other cards
+  const others = _quiz.cards.filter(c=>c.id!==card.id);
+  const wrongs = shuffle(others).slice(0,3).map(c=>{
+    // Extract first sentence of answer as the distractor
+    return c.answer.split(/[.!?]/)[0].trim() || c.answer.slice(0,80);
+  });
+  const correct = card.answer.split(/[.!?]/)[0].trim() || card.answer.slice(0,80);
+  const options = shuffle([correct, ...wrongs]);
+
+  const optsEl = document.getElementById('quizOpts');
+  optsEl.innerHTML = options.map((opt,i)=>`
+    <button class="quiz-opt" onclick="answerQuiz(this,'${opt===correct?'correct':'wrong'}','${opt===correct?'correct':'wrong'}')">
+      <strong style="color:var(--acc);margin-right:8px">${String.fromCharCode(65+i)}.</strong>${x(opt)}
+    </button>`).join('');
+}
+
+function answerQuiz(btn, result){
+  if(_quiz.answered) return;
+  _quiz.answered = true;
+  const card = _quiz.cards[_quiz.idx];
+  // Style all options
+  document.querySelectorAll('.quiz-opt').forEach(b=>{
+    const r = b.getAttribute('onclick').includes("'correct'") ? 'correct' : 'wrong';
+    if(r==='correct') b.classList.add('reveal');
+  });
+  if(result==='correct'){
+    btn.classList.remove('reveal');
+    btn.classList.add('correct');
+    _quiz.score++;
+  } else {
+    btn.classList.add('wrong');
+    // Highlight correct
+    document.querySelectorAll('.quiz-opt').forEach(b=>{
+      if(b.getAttribute('onclick').includes("'correct'")) b.classList.add('correct');
+    });
+  }
+  // Show mechanism as feedback
+  const fb = document.getElementById('quizFeedback');
+  fb.innerHTML = `<strong style="color:var(--txt)">⚡ Mechanism:</strong> ${card.mechanism||card.answer}`;
+  fb.style.display='block';
+  document.getElementById('quizNext').style.display='block';
+}
+
+function nextQuiz(){
+  _quiz.idx++;
+  if(_quiz.idx >= _quiz.cards.length) showQuizResult();
+  else loadQuiz();
+}
+
+function showQuizResult(){
+  const pct = Math.round(_quiz.score/_quiz.cards.length*100);
+  document.getElementById('quizOpts').innerHTML='';
+  document.getElementById('quizFeedback').style.display='none';
+  document.getElementById('quizNext').style.display='none';
+  document.getElementById('quizProgFill').style.width='100%';
+  document.getElementById('quizQ').textContent='';
+  document.getElementById('quizTopic').textContent='';
+  const emoji = pct>=80?'🏆':pct>=60?'💪':pct>=40?'📚':'🔄';
+  const msg = pct>=80?'Excellent! You're ready for boards.':pct>=60?'Good work — review the ones you missed.':pct>=40?'Keep studying — you're building momentum.':'Review the material and try again.';
+  document.getElementById('quizResultEmoji').textContent=emoji;
+  document.getElementById('quizResultScore').textContent=_quiz.score+' / '+_quiz.cards.length+' correct ('+pct+'%)';
+  document.getElementById('quizResultMsg').textContent=msg;
+  document.getElementById('quizResult').style.display='block';
+}
+
+// ══════════════════════════════════════════
+// EXPORT TO ANKI (.txt tab-separated import)
+// ══════════════════════════════════════════
+function exportAnki(){
+  const cards = aC();
+  if(!cards.length){ toast('No cards to export','info'); return; }
+  // Anki import format: Front[tab]Back[tab]Tags
+  const lines = cards.map(c=>{
+    const front = c.question.replace(/	/g,' ').replace(/
+/g,' ');
+    const back = [
+      c.answer,
+      c.mechanism ? '\n\n⚡ Mechanism: '+c.mechanism : '',
+      c.buzzwords ? '\n\n🏷 Buzzwords: '+c.buzzwords : ''
+    ].join('').replace(/	/g,' ');
+    const tags = [c.system, c.difficulty, c.exam].filter(Boolean).join(' ').replace(/ /g,'_');
+    return front+'\t'+back+'\t'+tags;
+  });
+  const txt = '#separator:tab\n#html:false\n#tags column:3\n' + lines.join('\n');
+  const blob = new Blob([txt],{type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'AnkiMedo_export_'+new Date().toISOString().slice(0,10)+'.txt';
+  a.click();
+  toast('✅ '+cards.length+' cards exported — import into Anki via File → Import','success');
+}
+
+// ══════════════════════════════════════════
+// PROGRESS CHARTS (enhanced stats page)
+// ══════════════════════════════════════════
+function rdStats(){
+  const all=aC(),now=new Date();
+  document.getElementById('stT').textContent=all.length;
+  document.getElementById('stM').textContent=all.filter(c=>c.mastery>=3).length;
+  document.getElementById('stD').textContent=all.filter(c=>new Date(c.due)<=now).length;
+  document.getElementById('stDk').textContent=S.decks.length;
+
+  // System progress bars
+  const sys={};
+  all.forEach(c=>{const s=c.system||'General';if(!sys[s])sys[s]={t:0,m:0,easy:0,medium:0,hard:0};sys[s].t++;if(c.mastery>=3)sys[s].m++;sys[s][c.difficulty||'medium']++;});
+  const tp=document.getElementById('topicProg');
+  if(!Object.keys(sys).length){tp.innerHTML=`<p style="color:var(--mut);font-size:.85rem">No data yet.</p>`;return;}
+
+  const sysColors={'Biochemistry':'#3b82f6','Cardiovascular':'#ef4444','Respiratory':'#06b6d4','Renal':'#8b5cf6','Neurology':'#f59e0b','Pharmacology':'#10b981','Microbiology':'#f97316','Immunology':'#ec4899','GI':'#84cc16','Endocrine':'#14b8a6','Hematology':'#6366f1','MSK':'#a78bfa','Reproductive':'#fb7185','Psychiatry':'#34d399','Dermatology':'#fbbf24','General':'#8899bb'};
+
+  tp.innerHTML = Object.entries(sys).sort((a,b)=>b[1].t-a[1].t).map(([s,v])=>{
+    const pct=Math.round(v.m/v.t*100);
+    const col=sysColors[s]||'var(--acc)';
+    return `<div style="margin-bottom:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-size:.82rem;font-weight:600;color:var(--txt)">${x(s)}</span>
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <span style="font-size:.7rem;color:var(--mut)">${v.easy||0}E · ${v.medium||0}M · ${v.hard||0}H</span>
+          <span style="font-size:.75rem;color:${col};font-weight:600">${v.m}/${v.t}</span>
+        </div>
+      </div>
+      <div style="height:8px;background:var(--bdr);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:4px;transition:width .6s ease"></div>
+      </div>
+      <div style="font-size:.68rem;color:var(--mut);margin-top:3px">${pct}% mastered</div>
+    </div>`;
+  }).join('');
+
+  // Study streak / activity summary
+  const reviewed = all.filter(c=>c.rev>0);
+  const streak = reviewed.length;
+  const avgMastery = all.length ? (all.reduce((a,c)=>a+(c.mastery||0),0)/all.length).toFixed(1) : 0;
+  const summaryEl = document.getElementById('statSummary');
+  if(summaryEl) summaryEl.innerHTML = `
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem">
+      <div style="flex:1;min-width:120px;background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:1rem;text-align:center">
+        <div style="font-size:1.6rem;font-weight:800;font-family:var(--fh);color:var(--acc)">${streak}</div>
+        <div style="font-size:.72rem;color:var(--mut);margin-top:2px">Cards Reviewed</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:1rem;text-align:center">
+        <div style="font-size:1.6rem;font-weight:800;font-family:var(--fh);color:var(--grn)">${avgMastery}</div>
+        <div style="font-size:.72rem;color:var(--mut);margin-top:2px">Avg Mastery</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:1rem;text-align:center">
+        <div style="font-size:1.6rem;font-weight:800;font-family:var(--fh);color:var(--pur)">${S.decks.length}</div>
+        <div style="font-size:.72rem;color:var(--mut);margin-top:2px">Decks Active</div>
+      </div>
+    </div>`;
+}
 
 // ── BOOT ──
 init().catch(console.error);
