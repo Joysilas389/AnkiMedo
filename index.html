@@ -846,7 +846,7 @@ function imgsForChunk(imgs,txt,max=3){
 }
 async function genCards(content,nm,exam){
   setS(3);
-  const n=Math.min(parseInt(G.cpc)||5,10);
+  const n=Math.min(parseInt(G.cpc)||4,6); // Deep mechanistic cards are longer — cap at 6
   const dl=G.dlv||'detailed';
   const foc=G.foc?'PRIORITY FOCUS: '+G.foc:'';
   const dmap={concise:'Answers: 2-3 sentences. Brief mechanism.',detailed:'Thorough answers with clear mechanisms.',deep:'Comprehensive from first principles — molecular→cellular→tissue→organ→clinical.'};
@@ -880,51 +880,69 @@ async function genCards(content,nm,exam){
 }
 
 function mkPrompt(nm,exam,n,di,foc,hasImgs){
-return `You are an elite USMLE Step 1/2CK question writer with 20 years at UWorld, NBME, and AMBOSS. Generate exactly ${n} board-quality flashcards for ${exam} from: "${nm}".
+return `You are the world's most rigorous medical educator — combining the depth of Guyton & Hall physiology, Robbins pathology, Goodman & Gilman pharmacology, and the clinical precision of UWorld. Your mission is to build TRUE conceptual understanding, not surface memorisation.
+
+Generate exactly ${n} flashcards for ${exam} from: "${nm}".
 ${foc}
-${hasImgs?'DIAGRAMS PROVIDED: Describe exactly what the diagram shows and incorporate its labels/arrows/steps into the mechanism field.':''}
+${hasImgs?'DIAGRAMS PROVIDED: Identify every label, arrow, pathway step, and spatial relationship shown. Incorporate ALL of this into your mechanism explanation — describe what each part of the diagram represents and how the components interact spatially and sequentially.':''}
 
-══ QUESTION STANDARDS (NON-NEGOTIABLE) ══
+══ QUESTION STANDARD (UWORLD/NBME PRECISION) ══
 
-For MEDIUM and HARD cards use FULL clinical vignettes (3-5 sentences):
-"A [specific age]-year-old [sex] with [relevant PMHx/ethnicity if applicable] presents to [clinic/ED/office] with [chief complaint] for [duration]. [Vital signs with numbers]. [Physical exam findings]. [Lab results with REAL values e.g. serum uric acid 11.2 mg/dL, WBC 14,000/μL, Na⁺ 128 mEq/L]. [Imaging if relevant]. Which of the following is the most likely [diagnosis / underlying mechanism / next best step]?"
+MEDIUM/HARD = Full clinical vignette, 4-6 sentences minimum:
+"A [specific age]-year-old [sex][, relevant ethnicity if diagnostically important] presents to [setting] with [chief complaint] for [duration]. [Vital signs with EXACT numbers: BP, HR, RR, Temp, O2 sat]. [Targeted physical exam findings]. Laboratory results: [REAL specific values — serum uric acid 11.4 mg/dL, WBC 18,200/μL with 88% neutrophils, Na⁺ 124 mEq/L, pH 7.28, HCO₃⁻ 14 mEq/L]. [Imaging or biopsy findings if relevant]. [Additional history clue that narrows the differential]. Which of the following is the most likely [diagnosis/mechanism/next step/expected finding]?"
 
-QUESTION STEM TYPES — rotate through all:
-1. "Which enzyme is most likely deficient?" (with vignette)
-2. "What is the most likely diagnosis?"
-3. "Which of the following best explains this finding?"
-4. "What is the most appropriate next step in management?"
-5. "Which drug mechanism is responsible for this side effect?"
-6. "This patient's condition is BEST explained by which pathophysiological mechanism?"
-7. "Which finding would you MOST expect on [labs/imaging/biopsy]?"
+QUESTION TYPES — use all of these:
+1. Mechanism: "Which molecular mechanism best explains this patient's [symptom/lab finding]?"
+2. Diagnosis: "What is the most likely diagnosis?" (after full vignette)
+3. Next Step: "What is the most appropriate next step in management?"
+4. Expected Finding: "Which of the following would most likely be found on [labs/biopsy/imaging]?"
+5. Drug Mechanism: "This patient's [complication] is best explained by the drug's effect on which target?"
+6. Pathophysiology: "The development of [symptom] in this patient is BEST explained by which sequence of events?"
+7. Distinction: "This patient's presentation is BEST differentiated from [similar condition] by which finding?"
 
-DIFFICULTY GUIDE:
-- easy: single buzzword→diagnosis recall. Short. No vignette needed.
-- medium: 3-sentence vignette + 1 lab finding + mechanism question
-- hard: 4-5 sentence vignette, multiple findings, requires multi-step reasoning, may involve distinguishing similar conditions or understanding downstream consequences
+DIFFICULTY:
+- easy: Direct recall — single buzzword or fact. One sentence. No vignette.
+- medium: 3-4 sentence vignette, one key lab value, mechanism or diagnosis question
+- hard: 5-6 sentence vignette, multiple abnormal labs, multi-step reasoning required, may need to distinguish between similar conditions or identify a second-order consequence
 
-ABSOLUTE RULES:
-✓ Real specific lab values — never "elevated" — always give the number (uric acid 11.2 mg/dL, not "elevated uric acid")
-✓ Specify age, sex, ethnicity when diagnostically relevant (Ashkenazi Jewish → Tay-Sachs/Gaucher; African American male → G6PD; Mediterranean → beta-thalassemia)
-✓ Classic buzzwords MUST appear in the question stem itself, not just the answer
-✓ Never reveal the diagnosis in the question — force reasoning
+NON-NEGOTIABLE RULES:
+✓ Specific lab values ALWAYS — "serum phenylalanine 24 mg/dL (normal <2)" not "elevated phenylalanine"
+✓ Ethnicity when relevant: Ashkenazi Jewish → Tay-Sachs/Gaucher/Niemann-Pick; African American male → G6PD/sickle cell; Mediterranean → beta-thalassemia/G6PD; Northern European → PKU/CF; Scandinavian → hereditary hemochromatosis
+✓ Classic buzzwords IN THE STEM — force recognition: "mousy odor" (PKU), "orange sandy crystals in diaper" (Lesch-Nyhan), "Kayser-Fleischer rings" (Wilson), "garlic odor" (arsenic), "currant jelly sputum" (Klebsiella), "cherry-red macula" (Tay-Sachs/CRAO), "boot-shaped heart" (ToF), "egg-on-a-string" (TGA), "thumbprinting" (ischemic colitis)
+✓ Question stem NEVER reveals the answer — the student must reason to it
 ✓ ${di}
 
-ANSWER FORMAT:
-Line 1: The direct answer (enzyme name, drug, diagnosis)
-Line 2: Key diagnostic associations and buzzwords
-Line 3: Classic mnemonic if one exists (e.g. "HGPRT: Hyperuricemia, Gout, Pissed off, Red crystals, Tense muscles")
+══ MECHANISM FIELD — THE INTELLECTUAL CORE ══
 
-MECHANISM FIELD (THIS IS THE CORE VALUE OF THIS APP):
-Must be 4-6 sentences explaining:
-1. Normal function of the enzyme/pathway/receptor
-2. What the mutation/deficiency/drug does at molecular level  
-3. What accumulates or is depleted as a result
-4. Why THOSE SPECIFIC symptoms occur (not just "this causes disease")
-5. Clinical correlation — how the biochemistry produces the bedside findings
+This is NOT a summary. This is a step-by-step causal chain from molecular biology to bedside finding. Every step must be explicitly connected to the next. No steps skipped. No abstract statements.
 
-Return ONLY valid JSON array. No markdown, no backticks, no explanation:
-[{"question":"Full clinical vignette or focused question","answer":"Answer\nKey associations and buzzwords\nMnemonic if applicable","mechanism":"4-6 sentences explaining normal function → defect → accumulation → symptoms → clinical signs","topic":"System — Specific Subtopic","system":"Biochemistry|Cardiovascular|Respiratory|Renal|Neurology|Pharmacology|Microbiology|Immunology|GI|Endocrine|Hematology|MSK|Reproductive|Psychiatry|Dermatology","difficulty":"easy|medium|hard","exam":"${exam}","buzzwords":"3-5 classic board buzzwords comma-separated"}]`;
+STRUCTURE — follow this EXACT architecture:
+
+STEP 1 — NORMAL PHYSIOLOGY: What does this enzyme/receptor/pathway/channel normally do? What is its substrate, product, cofactor? Where in the cell/organ does it occur? What is its physiological purpose? Give the normal biochemistry with pathway context (e.g. "In the urea cycle, CPS-I in the mitochondrial matrix converts NH₃ + CO₂ + 2 ATP → carbamoyl phosphate, the first committed step in disposing of toxic ammonia generated from amino acid catabolism").
+
+STEP 2 — THE DEFECT: What exactly goes wrong? Gene mutation → missing/dysfunctional protein → which specific reaction fails? What accumulates upstream? What is depleted downstream? Give specific molecule names and compartments.
+
+STEP 3 — CELLULAR CONSEQUENCES: How does the accumulating substrate (or depleted product) damage cells? Is it direct toxicity? Osmotic effect? Inhibition of another pathway? Competition at transporters? Membrane disruption? Organelle dysfunction? Be specific about WHICH cells are most vulnerable and WHY (e.g. neurons are vulnerable because they cannot synthesise glucose and rely entirely on oxidative phosphorylation; renal tubular cells are vulnerable because they are exposed to highest concentrations of filtered substrate).
+
+STEP 4 — ORGAN/SYSTEM CONSEQUENCES: How does cellular damage translate to organ dysfunction? Which organ systems are affected first and why? Include the spatial and anatomical reasoning (e.g. "the globus pallidus has the highest density of dopamine D2 receptors and is therefore selectively vulnerable to dopamine depletion").
+
+STEP 5 — CLINICAL PRESENTATION: How does the organ dysfunction produce the SPECIFIC symptoms seen in this patient? Explain each symptom mechanistically — not just "causes neurological symptoms" but "the accumulation of galactitol via aldose reductase in the lens epithelium disrupts osmotic balance → water influx → protein precipitation → cataract formation". Include why certain findings are PATHOGNOMONIC (e.g. why the Kayser-Fleischer ring appears specifically at the Descemet membrane periphery in Wilson disease).
+
+SPATIAL/VISUAL UNDERSTANDING: Where relevant, describe WHERE in the body, WHICH anatomical structure, WHICH cellular compartment, WHICH part of a pathway. Help the reader build a 3D mental model.
+
+Minimum length: 6-8 sentences. Comprehensive. No oversimplification. No skipped steps. Write as if teaching a brilliant student who will be asked to EXPLAIN the mechanism to their attending on rounds, not just recall a fact for an MCQ.
+
+Return ONLY valid JSON array. No markdown, no backticks:
+[{
+  "question": "Full clinical vignette with real values OR focused easy question",
+  "answer": "Direct answer (enzyme/drug/diagnosis)\nKey diagnostic associations and buzzwords\nMnemonic if one exists",
+  "mechanism": "Step 1 (Normal physiology) → Step 2 (Defect + accumulation/depletion) → Step 3 (Cellular toxicity mechanism) → Step 4 (Organ consequences) → Step 5 (Clinical signs explained). Minimum 6 sentences.",
+  "topic": "System — Specific Subtopic (e.g. Biochemistry — Purine Salvage Pathway)",
+  "system": "Biochemistry|Cardiovascular|Respiratory|Renal|Neurology|Pharmacology|Microbiology|Immunology|GI|Endocrine|Hematology|MSK|Reproductive|Psychiatry|Dermatology|Ophthalmology",
+  "difficulty": "easy|medium|hard",
+  "exam": "${exam}",
+  "buzzwords": "3-6 classic board buzzwords comma-separated"
+}]`;
 }
 
 // ══ API CALL ══
@@ -937,7 +955,7 @@ async function callAPI(msgs){
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':G.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       signal:ctrl.signal,
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,messages:msgs})
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,messages:msgs})
     });
   }catch(fe){clearTimeout(timer);if(fe.name==='AbortError')throw new Error('Timed out — check connection');throw new Error('Network error: '+fe.message);}
   clearTimeout(timer);
