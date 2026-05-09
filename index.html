@@ -282,8 +282,8 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
     <!-- HOME -->
     <div class="page active" id="page-home">
       <div class="hero">
-        <h1>Turn any PDF into<br/><span class="grad">intelligent flashcards</span></h1>
-        <p>Upload First Aid, Toronto Notes, Pathoma, or any medical PDF — Claude AI reads it and builds deep, UWorld-standard mechanistic flashcards that explain the <em>why</em>, not just the what.</p>
+        <h1>Turn any file into<br/><span class="grad">intelligent flashcards</span></h1>
+        <p>Upload a PDF, Word doc, screenshot, or photo of any medical material — Claude AI reads it and builds deep, UWorld-standard mechanistic flashcards that explain the <em>why</em>, not just the what.</p>
         <div class="upzone" id="upzone">
           <input type="file" id="pdfIn" accept=".pdf,.doc,.docx,image/*" multiple onchange="handleFiles(this.files)"/>
           <div class="up-ico" id="upIco">📄</div>
@@ -306,11 +306,11 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
           <div class="procbox">
             <div class="spinner"></div>
             <h5 style="font-family:var(--fh);font-weight:800;margin-bottom:.3rem">Claude is reading your PDF…</h5>
-            <p style="color:var(--mut);font-size:.83rem">PDF processed locally — text + diagrams sent to Claude</p>
+            <p style="color:var(--mut);font-size:.83rem">Files processed locally — only content is sent to Claude</p>
             <div class="psteps">
-              <div class="pstep" id="ps1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Extracting text &amp; diagrams locally (PDF never leaves device)</div>
+              <div class="pstep" id="ps1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Extracting content locally — nothing leaves your device</div>
               <div class="pstep" id="ps2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Identifying topics, systems &amp; diagrams</div>
-              <div class="pstep" id="ps3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Generating clinical vignettes</div>
+              <div class="pstep" id="ps3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Generating UWorld-style clinical vignettes</div>
               <div class="pstep" id="ps4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Adding mechanistic explanations</div>
               <div class="pstep" id="ps5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Calibrating difficulty levels</div>
             </div>
@@ -329,7 +329,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
         </button>
       </div>
       <div class="cgrid" id="decksGrid">
-        <div class="empty" style="grid-column:1/-1"><div class="eico">📚</div><h4>No decks yet</h4><p>Upload a PDF to create your first deck</p></div>
+        <div class="empty" style="grid-column:1/-1"><div class="eico">📚</div><h4>No decks yet</h4><p>Upload a file to create your first deck</p></div>
       </div>
     </div>
 
@@ -355,7 +355,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
             <span class="chip" onclick="setChip(this,'due')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Due</span>
           </div>
           <div class="cgrid" id="cardsGrid">
-            <div class="empty" style="grid-column:1/-1"><div class="eico">🃏</div><h4>No flashcards yet</h4><p>Upload a PDF to generate cards</p></div>
+            <div class="empty" style="grid-column:1/-1"><div class="eico">🃏</div><h4>No flashcards yet</h4><p>Upload a file to generate cards</p></div>
           </div>
         </div>
       </div>
@@ -384,7 +384,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
       </div>
       <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:1.375rem">
         <div style="font-family:var(--fh);font-weight:700;margin-bottom:.875rem;font-size:.95rem">Progress by System</div>
-        <div id="topicProg"><p style="color:var(--mut);font-size:.85rem">No data yet. Upload a PDF to begin.</p></div>
+        <div id="topicProg"><p style="color:var(--mut);font-size:.85rem">No data yet. Upload a file to begin.</p></div>
       </div>
     </div>
 
@@ -423,7 +423,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
           Flashcard Generation
         </h5>
         <div class="row g-3">
-          <div class="col-md-6"><label class="flbl">Cards per PDF section</label><input type="number" class="finp" id="cpC" value="8" min="3" max="20"/></div>
+          <div class="col-md-6"><label class="flbl">Cards per content section</label><input type="number" class="finp" id="cpC" value="8" min="3" max="20"/></div>
           <div class="col-md-6"><label class="flbl">Detail level</label>
             <select class="finp" id="dlvl">
               <option value="concise">Concise (fast)</option>
@@ -622,7 +622,7 @@ async function handleFile(f){
 async function handleImages(files){
   if(!files.length)return;
   if(!S.apiKey){toast('Set your API key in Settings first','error');go('settings');return;}
-  showProc('Reading '+files.length+' image'+(files.length>1?'s':'')+'…');
+  showProc('Reading '+files.length+' image'+(files.length>1?'s':'')+' — processing locally…');
   try{
     const exam=S.se||'USMLE Step 1';
     const nm=files.length===1
@@ -977,7 +977,7 @@ function aC(){return S.decks.flatMap(d=>d.cards.map(c=>({...c,dn:d.name,di:d.id}
 
 function rdDecks(){
   const g=document.getElementById('decksGrid');
-  if(!S.decks.length){g.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="eico">📚</div><h4>No decks yet</h4><p>Upload a PDF to create your first deck</p></div>`;return;}
+  if(!S.decks.length){g.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="eico">📚</div><h4>No decks yet</h4><p>Upload a file to create your first deck</p></div>`;return;}
   const ico={'USMLE Step 1':'🧬','USMLE Step 2CK':'🩺','USMLE Step 3':'🏥','MCCQE1':'🍁'};
   const clr={'USMLE Step 1':'rgba(59,130,246,.15)','USMLE Step 2CK':'rgba(16,185,129,.15)','USMLE Step 3':'rgba(139,92,246,.15)','MCCQE1':'rgba(245,158,11,.15)'};
   g.innerHTML=S.decks.map(d=>{
@@ -1011,7 +1011,7 @@ function rdBrowse(){
   else if(S.af==='hard')cards=cards.filter(c=>c.difficulty==='hard');
   else if(S.af==='due')cards=cards.filter(c=>new Date(c.due)<=new Date());
   const g=document.getElementById('cardsGrid');
-  if(!cards.length){g.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="eico">🃏</div><h4>No cards found</h4><p>${aC().length?'Adjust your search or filters':'Upload a PDF to generate cards'}</p></div>`;return;}
+  if(!cards.length){g.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="eico">🃏</div><h4>No cards found</h4><p>${aC().length?'Adjust your search or filters':'Upload a file to generate cards'}</p></div>`;return;}
   g.innerHTML=cards.slice(0,120).map(c=>fcH(c)).join('');
 }
 
