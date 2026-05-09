@@ -1,0 +1,24 @@
+{
+  "name": "AnkiMedo \u2014 Ace Your Boards",
+  "short_name": "AnkiMedo",
+  "description": "AI-powered medical flashcards for USMLE Step 1, Step 2CK, Step 3 & MCCQE1",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1e",
+  "theme_color": "#0a0f1e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "education",
+    "medical",
+    "productivity"
+  ],
+  "screenshots": []
+}

@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#0a0f1e"/>
+<meta name="description" content="AI-powered medical flashcards for USMLE Step 1, Step 2CK, Step 3 &amp; MCCQE1"/>
+<title>AnkiMedo — Ace Your Boards</title>
+<link rel="manifest" href="manifest.json"/>
+<!-- Bootstrap 5.3 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+<style>
+/* SF Pro system font stack - pre-installed on all Apple devices, zero network requests */
+
+/* ══════════ DESIGN TOKENS ══════════ */
+:root{
+  --bg:#0a0f1e; --sur:#111827; --sur2:#1a2235;
+  --bdr:rgba(255,255,255,.08); --bdr2:rgba(255,255,255,.14);
+  --acc:#3b82f6; --acc2:#06b6d4;
+  --gld:#f59e0b; --grn:#10b981; --red:#ef4444; --pur:#8b5cf6;
+  --txt:#f0f4ff; --mut:#8899bb; --r:14px;
+  --fh: 'SF Pro Display', 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --fb: 'SF Pro Text', 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+}
+/* SF Pro rendering optimisation */
+*{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+/* SF Pro Display optical sizing for headings — tighter tracking, heavier weight */
+h1,h2,h3,h4,h5,h6{font-family:var(--fh);letter-spacing:-0.025em;font-weight:700}
+h1{font-weight:800;letter-spacing:-0.03em}
+.s-brand,.topbar-ttl,.dnm,.cbody strong{font-family:var(--fh)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb);overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+
+/* ══ SIDEBAR ══ */
+#sidebar{position:fixed;top:0;left:0;height:100vh;width:256px;background:var(--sur);border-right:1px solid var(--bdr);display:flex;flex-direction:column;z-index:100;transition:transform .3s ease}
+.s-logo{padding:1.375rem 1.25rem 1rem;border-bottom:1px solid var(--bdr)}
+.s-brand{display:inline-flex;align-items:center;gap:9px;font-family:var(--fh);font-size:1.15rem;font-weight:800;color:var(--txt);text-decoration:none}
+.s-icon{width:33px;height:33px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.s-nav{flex:1;overflow-y:auto;padding:.5rem 0}
+.s-sect{padding:.5rem 1.25rem .2rem;font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;color:var(--mut);font-weight:600}
+.s-lnk{display:flex;align-items:center;gap:10px;padding:.575rem 1.25rem;color:var(--mut);text-decoration:none;font-size:.85rem;font-weight:400;border-left:3px solid transparent;transition:all .15s;cursor:pointer;user-select:none}
+.s-lnk:hover{color:var(--txt);background:rgba(255,255,255,.04)}
+.s-lnk.active{color:var(--acc);border-left-color:var(--acc);background:rgba(59,130,246,.08);font-weight:500}
+.s-foot{padding:1rem 1.25rem;border-top:1px solid var(--bdr)}
+.api-row{display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--mut)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--mut);flex-shrink:0}
+.dot.on{background:var(--grn);animation:blink 2.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ══ MAIN ══ */
+#main{margin-left:256px;min-height:100vh;display:flex;flex-direction:column}
+.topbar{height:60px;background:var(--sur);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 1.5rem;gap:.875rem;position:sticky;top:0;z-index:50}
+.topbar-ttl{font-family:var(--fh);font-size:1rem;font-weight:700;flex:1}
+.ic-btn{width:36px;height:36px;border:1px solid var(--bdr);background:transparent;color:var(--mut);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;padding:0}
+.ic-btn:hover{color:var(--txt);border-color:var(--bdr2)}
+.content{flex:1;padding:2rem 1.5rem}
+.page{display:none}.page.active{display:block}
+
+/* ══ UPLOAD ══ */
+.hero{max-width:620px;margin:0 auto;text-align:center;padding:2.5rem 0 1.5rem}
+.hero h1{font-family:var(--fh);font-size:2.4rem;font-weight:800;line-height:1.13;margin-bottom:.7rem}
+.grad{background:linear-gradient(125deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:var(--mut);font-size:.975rem;line-height:1.65;max-width:460px;margin:0 auto 1.75rem}
+.upzone{border:2px dashed rgba(59,130,246,.32);border-radius:20px;padding:3rem 1.75rem;cursor:pointer;transition:all .2s;position:relative;background:rgba(59,130,246,.03)}
+.upzone:hover,.upzone.drag{border-color:var(--acc);background:rgba(59,130,246,.08)}
+.upzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.up-ico{font-size:2.75rem;color:var(--acc);margin-bottom:.875rem;line-height:1}
+.upzone h3{font-family:var(--fh);font-size:1.05rem;font-weight:700;margin-bottom:.4rem}
+.upzone p{color:var(--mut);font-size:.82rem;margin:0}
+.xpills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:1.75rem}
+.xpill{padding:6px 16px;border-radius:100px;font-size:.75rem;font-weight:600;border:1px solid var(--bdr);color:var(--mut);cursor:pointer;transition:all .15s;font-family:var(--fb)}
+.xpill:hover,.xpill.on{color:var(--txt);border-color:var(--acc);background:rgba(59,130,246,.12)}
+
+/* ══ PROCESSING ══ */
+.procbox{background:var(--sur2);border:1px solid var(--bdr);border-radius:20px;padding:2.75rem 2rem;text-align:center;max-width:480px;margin:1.5rem auto}
+.spinner{width:56px;height:56px;margin:0 auto 1.5rem;border:3px solid var(--bdr);border-top-color:var(--acc);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.psteps{text-align:left;margin-top:1.25rem}
+.pstep{display:flex;align-items:center;gap:10px;padding:.45rem 0;font-size:.855rem;color:var(--mut)}
+.pstep.done{color:var(--grn)}.pstep.active{color:var(--txt)}
+
+/* ══ SEARCH ══ */
+.srch{position:relative;margin-bottom:1.25rem}
+.srch input{background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:.575rem 1rem .575rem 2.6rem;color:var(--txt);font-family:var(--fb);font-size:.875rem;width:100%;outline:none;transition:border-color .15s}
+.srch input:focus{border-color:var(--acc)}.srch input::placeholder{color:var(--mut)}
+.srch-ico{position:absolute;left:.8rem;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none}
+
+/* ══ CHIPS ══ */
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:1.25rem}
+.chip{padding:5px 13px;border-radius:100px;font-size:.77rem;font-weight:500;border:1px solid var(--bdr);color:var(--mut);cursor:pointer;transition:all .15s;white-space:nowrap;font-family:var(--fb);display:inline-flex;align-items:center;gap:5px}
+.chip:hover{border-color:var(--bdr2);color:var(--txt)}.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+
+/* ══ GRIDS ══ */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:1rem}
+
+/* ══ FLASHCARD ITEM ══ */
+.fci{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:1.125rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.fci::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
+.fci.easy::before{background:var(--grn)}.fci.medium::before{background:var(--gld)}.fci.hard::before{background:var(--red)}
+.fci:hover{border-color:var(--bdr2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.fc-top{font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--acc2);margin-bottom:.45rem}
+.fc-q{font-size:.875rem;font-weight:500;color:var(--txt);line-height:1.5;margin-bottom:.5rem}
+.fc-bw{font-size:.67rem;color:var(--mut);display:flex;align-items:center;gap:4px;margin-top:.35rem}
+.fc-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:.5rem}
+.bd{font-size:.67rem;padding:2px 9px;border-radius:100px;font-weight:600}
+.bd.easy{background:rgba(16,185,129,.14);color:var(--grn)}.bd.medium{background:rgba(245,158,11,.14);color:var(--gld)}.bd.hard{background:rgba(239,68,68,.14);color:var(--red)}
+.bs{font-size:.67rem;padding:2px 9px;border-radius:100px;font-weight:500;background:rgba(139,92,246,.13);color:var(--pur)}
+.mdots{margin-left:auto;display:flex;gap:3px}
+.md{width:6px;height:6px;border-radius:50%;background:var(--bdr)}.md.on{background:var(--grn)}
+
+/* ══ STUDY ══ */
+#studyView{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}
+#studyView.active{display:flex}
+.sw{width:100%;max-width:660px}
+.sprog{display:flex;align-items:center;gap:.875rem;margin-bottom:1.75rem}
+.strack{flex:1;height:4px;background:var(--bdr);border-radius:2px;overflow:hidden}
+.sfill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px;transition:width .4s ease}
+.stxt{font-size:.78rem;color:var(--mut);white-space:nowrap}
+.fcard{width:100%;min-height:330px;perspective:1000px;cursor:pointer}
+.finner{position:relative;width:100%;min-height:330px;transform-style:preserve-3d;transition:transform .48s cubic-bezier(.4,0,.2,1)}
+.fcard.flipped .finner{transform:rotateY(180deg)}
+.ffront,.fback{position:absolute;width:100%;min-height:330px;backface-visibility:hidden;background:var(--sur);border:1px solid var(--bdr);border-radius:20px;padding:1.875rem;display:flex;flex-direction:column}
+.fback{transform:rotateY(180deg)}
+.clbl{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.875rem;display:flex;align-items:center;gap:5px}
+.clbl.q{color:var(--acc2)}.clbl.a{color:var(--grn)}
+.cbody{flex:1;font-size:1rem;line-height:1.7;color:var(--txt)}
+.cmech{margin-top:.875rem;padding:.7rem .9rem;background:rgba(59,130,246,.06);border-left:3px solid var(--acc);border-radius:0 8px 8px 0;font-size:.83rem;color:var(--mut);line-height:1.65}
+.cmech strong{color:var(--txt)}
+.fhint{text-align:center;margin-top:.875rem;font-size:.76rem;color:var(--mut);display:flex;align-items:center;justify-content:center;gap:6px}
+.rrow{display:flex;gap:.625rem;margin-top:1.375rem;justify-content:center}
+.rbtn{flex:1;max-width:150px;padding:.575rem .875rem;border-radius:10px;border:1px solid;font-family:var(--fb);font-size:.83rem;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.rbtn.f{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.07)}.rbtn.f:hover{background:rgba(239,68,68,.17)}
+.rbtn.h{border-color:var(--gld);color:var(--gld);background:rgba(245,158,11,.07)}.rbtn.h:hover{background:rgba(245,158,11,.17)}
+.rbtn.g{border-color:var(--grn);color:var(--grn);background:rgba(16,185,129,.07)}.rbtn.g:hover{background:rgba(16,185,129,.17)}
+.rbtn.e{border-color:var(--acc);color:var(--acc);background:rgba(59,130,246,.07)}.rbtn.e:hover{background:rgba(59,130,246,.17)}
+.sc-btn{position:fixed;top:1.125rem;right:1.125rem}
+
+/* ══ STATS ══ */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.875rem;margin-bottom:1.75rem}
+.scard{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:1.125rem}
+.slbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);font-weight:600;margin-bottom:.35rem}
+.sval{font-family:var(--fh);font-size:1.75rem;font-weight:800}
+.sval.b{color:var(--acc)}.sval.g{color:var(--grn)}.sval.go{color:var(--gld)}.sval.p{color:var(--pur)}
+
+/* ══ EMPTY ══ */
+.empty{text-align:center;padding:4rem 2rem;color:var(--mut)}
+.empty .eico{font-size:2.5rem;margin-bottom:.875rem;opacity:.4}
+.empty h4{font-family:var(--fh);color:var(--txt);margin-bottom:.4rem}
+
+/* ══ DECK ══ */
+.dcard{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:1.25rem;position:relative;overflow:hidden;transition:all .2s;cursor:pointer}
+.dcard:hover{border-color:rgba(59,130,246,.28);transform:translateY(-2px)}
+.dico{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:.7rem}
+.dnm{font-family:var(--fh);font-size:.975rem;font-weight:700;margin-bottom:.2rem}
+.dinf{font-size:.78rem;color:var(--mut)}
+.dpbar{height:3px;background:var(--bdr);border-radius:2px;margin-top:.7rem;overflow:hidden}
+.dpfil{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px}
+
+/* ══ TOPIC LIST ══ */
+.tlist{list-style:none}
+.titem{display:flex;align-items:center;justify-content:space-between;padding:.45rem 0;border-bottom:1px solid var(--bdr);font-size:.85rem;cursor:pointer;transition:color .15s}
+.titem:hover{color:var(--acc)}
+.tcnt{font-size:.72rem;background:var(--sur2);border-radius:100px;padding:1px 8px;color:var(--mut)}
+
+/* ══ SETTINGS ══ */
+.stng{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:1.375rem;margin-bottom:.875rem}
+.stng h5{font-family:var(--fh);font-size:.93rem;font-weight:700;margin-bottom:.875rem;display:flex;align-items:center;gap:7px}
+.flbl{font-size:.78rem;color:var(--mut);margin-bottom:.3rem;font-weight:500;display:block}
+.finp{background:var(--bg);border:1px solid var(--bdr);color:var(--txt);border-radius:8px;padding:.525rem .825rem;font-family:var(--fb);font-size:.85rem;width:100%;outline:none;transition:border-color .15s}
+.finp:focus{border-color:var(--acc)}.finp::placeholder{color:var(--mut)}
+.btn-p{background:var(--acc);border:none;color:#fff;padding:.575rem 1.375rem;border-radius:8px;font-family:var(--fb);font-size:.85rem;font-weight:500;cursor:pointer;transition:background .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-p:hover{background:#2563eb}
+.btn-o{background:transparent;border:1px solid var(--bdr);color:var(--mut);padding:.575rem 1.125rem;border-radius:8px;font-family:var(--fb);font-size:.85rem;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-o:hover{border-color:var(--bdr2);color:var(--txt)}
+.btn-d{background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.28);color:var(--red);padding:.575rem 1.125rem;border-radius:8px;font-family:var(--fb);font-size:.85rem;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-d:hover{background:rgba(239,68,68,.18)}
+.enc-badge{font-size:.7rem;padding:3px 10px;border-radius:100px;font-weight:600;border:1px solid rgba(16,185,129,.25);background:rgba(16,185,129,.1);color:var(--grn);display:none;align-items:center;gap:4px}
+
+/* ══ TOAST ══ */
+.twrap{position:fixed;bottom:1.375rem;right:1.375rem;z-index:999;display:flex;flex-direction:column;gap:7px}
+.titem{background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:.7rem .9rem;font-size:.835rem;display:flex;align-items:center;gap:8px;animation:su .28s ease;min-width:240px;max-width:340px}
+@keyframes su{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+.titem.success{border-left:3px solid var(--grn)}.titem.error{border-left:3px solid var(--red)}.titem.info{border-left:3px solid var(--acc)}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:767px){
+  #sidebar{transform:translateX(-100%)}.#sidebar.open{transform:none}
+  #sidebar.open{transform:none}
+  #main{margin-left:0}
+  .cgrid{grid-template-columns:1fr}
+  #ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;display:none}
+  #ov.active{display:block}
+  .hero h1{font-size:1.9rem}
+  .rrow{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<div id="ov" onclick="closeSB()"></div>
+<div class="twrap" id="tw"></div>
+
+<!-- ════════ SIDEBAR ════════ -->
+<nav id="sidebar">
+  <div class="s-logo">
+    <a class="s-brand">
+      <div class="s-icon">🧠</div>AnkiMedo
+    </a>
+  </div>
+  <div class="s-nav">
+    <div class="s-sect">Study</div>
+    <a class="s-lnk active" data-page="home" onclick="go('home')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+      Home
+    </a>
+    <a class="s-lnk" data-page="library" onclick="go('library')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      My Decks
+    </a>
+    <a class="s-lnk" data-page="browse" onclick="go('browse')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      Browse Cards
+    </a>
+    <a class="s-lnk" data-page="due" onclick="go('due')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Due Today
+      <span id="dueBadge" class="badge bg-danger ms-auto" style="font-size:.62rem;padding:2px 7px;display:none"></span>
+    </a>
+    <div class="s-sect" style="margin-top:.5rem">Exams</div>
+    <a class="s-lnk" onclick="filterExam('USMLE Step 1')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+      USMLE Step 1
+    </a>
+    <a class="s-lnk" onclick="filterExam('USMLE Step 2CK')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      USMLE Step 2CK
+    </a>
+    <a class="s-lnk" onclick="filterExam('USMLE Step 3')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      USMLE Step 3
+    </a>
+    <a class="s-lnk" onclick="filterExam('MCCQE1')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      MCCQE1
+    </a>
+    <div class="s-sect" style="margin-top:.5rem">Tools</div>
+    <a class="s-lnk" data-page="stats" onclick="go('stats')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Statistics
+    </a>
+    <a class="s-lnk" data-page="settings" onclick="go('settings')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Settings
+    </a>
+  </div>
+  <div class="s-foot">
+    <div class="api-row">
+      <div class="dot" id="apiDot"></div>
+      <span id="apiTxt">API key not set</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ════════ MAIN ════════ -->
+<div id="main">
+  <div class="topbar">
+    <button class="ic-btn d-md-none" onclick="togSB()" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="topbar-ttl" id="topTtl">Home</span>
+    <button class="ic-btn" onclick="go('settings')" aria-label="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
+    <button class="ic-btn" id="playBtn" onclick="startStudy('all')" aria-label="Study" style="display:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </button>
+  </div>
+
+  <div class="content">
+
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="hero">
+        <h1>Turn any PDF into<br/><span class="grad">intelligent flashcards</span></h1>
+        <p>Upload First Aid, Toronto Notes, Pathoma, or any medical PDF — Claude AI reads it and builds deep, UWorld-standard mechanistic flashcards that explain the <em>why</em>, not just the what.</p>
+        <div class="upzone" id="upzone">
+          <input type="file" id="pdfIn" accept=".pdf" onchange="handleFile(this.files[0])"/>
+          <div class="up-ico">📄</div>
+          <h3>Drop your PDF here</h3>
+          <p>or tap to browse &nbsp;·&nbsp; First Aid, Toronto Notes, Pathoma, Sketchy &amp; more</p>
+        </div>
+        <div class="xpills">
+          <span class="xpill on" onclick="selX(this,'USMLE Step 1')">USMLE Step 1</span>
+          <span class="xpill"    onclick="selX(this,'USMLE Step 2CK')">USMLE Step 2CK</span>
+          <span class="xpill"    onclick="selX(this,'USMLE Step 3')">USMLE Step 3</span>
+          <span class="xpill"    onclick="selX(this,'MCCQE1')">MCCQE1</span>
+        </div>
+        <div id="procBox" style="display:none">
+          <div class="procbox">
+            <div class="spinner"></div>
+            <h5 style="font-family:var(--fh);font-weight:800;margin-bottom:.3rem">Claude is reading your PDF…</h5>
+            <p style="color:var(--mut);font-size:.83rem">Building UWorld-standard mechanistic flashcards</p>
+            <div class="psteps">
+              <div class="pstep" id="ps1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Extracting text from PDF</div>
+              <div class="pstep" id="ps2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Identifying topics &amp; systems</div>
+              <div class="pstep" id="ps3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Generating clinical vignettes</div>
+              <div class="pstep" id="ps4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Adding mechanistic explanations</div>
+              <div class="pstep" id="ps5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sti"><circle cx="12" cy="12" r="10"/></svg> Calibrating difficulty levels</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIBRARY -->
+    <div class="page" id="page-library">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h4 style="font-family:var(--fh);font-weight:800;margin:0">My Decks</h4>
+        <button class="btn-p" onclick="go('home')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Deck
+        </button>
+      </div>
+      <div class="cgrid" id="decksGrid">
+        <div class="empty" style="grid-column:1/-1"><div class="eico">📚</div><h4>No decks yet</h4><p>Upload a PDF to create your first deck</p></div>
+      </div>
+    </div>
+
+    <!-- BROWSE -->
+    <div class="page" id="page-browse">
+      <div class="row g-3">
+        <div class="col-lg-3 col-md-4">
+          <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:1.125rem">
+            <div style="font-family:var(--fh);font-size:.8rem;font-weight:700;margin-bottom:.625rem;color:var(--mut)">TOPICS</div>
+            <ul class="tlist" id="topicList"><li style="font-size:.8rem;color:var(--mut);padding:.4rem 0">No topics yet</li></ul>
+          </div>
+        </div>
+        <div class="col-lg-9 col-md-8">
+          <div class="srch">
+            <span class="srch-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
+            <input type="text" id="srchIn" placeholder="Search by topic, keyword, mechanism, buzzword…" oninput="filterCards()"/>
+          </div>
+          <div class="chips">
+            <span class="chip on" onclick="setChip(this,'all')">All</span>
+            <span class="chip" onclick="setChip(this,'easy')"><span style="width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block"></span>Easy</span>
+            <span class="chip" onclick="setChip(this,'medium')"><span style="width:7px;height:7px;border-radius:50%;background:var(--gld);display:inline-block"></span>Medium</span>
+            <span class="chip" onclick="setChip(this,'hard')"><span style="width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block"></span>Hard</span>
+            <span class="chip" onclick="setChip(this,'due')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Due</span>
+          </div>
+          <div class="cgrid" id="cardsGrid">
+            <div class="empty" style="grid-column:1/-1"><div class="eico">🃏</div><h4>No flashcards yet</h4><p>Upload a PDF to generate cards</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DUE TODAY -->
+    <div class="page" id="page-due">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h4 style="font-family:var(--fh);font-weight:800;margin:0">Due Today</h4>
+        <button class="btn-p" id="startDueBtn" onclick="startStudy('due')" style="display:none">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Study Now
+        </button>
+      </div>
+      <div class="cgrid" id="dueGrid"></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="page" id="page-stats">
+      <h4 style="font-family:var(--fh);font-weight:800;margin-bottom:1.125rem">Statistics</h4>
+      <div class="sgrid">
+        <div class="scard"><div class="slbl">Total Cards</div><div class="sval b" id="stT">0</div></div>
+        <div class="scard"><div class="slbl">Mastered</div><div class="sval g" id="stM">0</div></div>
+        <div class="scard"><div class="slbl">Due Today</div><div class="sval go" id="stD">0</div></div>
+        <div class="scard"><div class="slbl">Decks</div><div class="sval p" id="stDk">0</div></div>
+      </div>
+      <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:1.375rem">
+        <div style="font-family:var(--fh);font-weight:700;margin-bottom:.875rem;font-size:.95rem">Progress by System</div>
+        <div id="topicProg"><p style="color:var(--mut);font-size:.85rem">No data yet. Upload a PDF to begin.</p></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <h4 style="font-family:var(--fh);font-weight:800;margin-bottom:1.125rem">Settings</h4>
+      <div class="stng">
+        <h5>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Claude API Key
+        </h5>
+        <div style="margin-bottom:.7rem">
+          <span class="enc-badge" id="encBadge">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            AES-256 encrypted
+          </span>
+        </div>
+        <label class="flbl">API Key</label>
+        <div class="d-flex gap-2">
+          <div style="flex:1;position:relative">
+            <input type="password" class="finp" id="apiIn" placeholder="sk-ant-api03-…" style="padding-right:40px"/>
+            <button onclick="togEye()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--mut);display:flex;align-items:center" aria-label="Toggle">
+              <svg id="eyeSvg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <button class="btn-p" onclick="saveKey()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Save
+          </button>
+        </div>
+        <p style="font-size:.76rem;color:var(--mut);margin-top:.6rem">Encrypted with AES-256 and stored locally. Never sent anywhere except directly to Anthropic's API.</p>
+      </div>
+      <div class="stng">
+        <h5>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Flashcard Generation
+        </h5>
+        <div class="row g-3">
+          <div class="col-md-6"><label class="flbl">Cards per PDF section</label><input type="number" class="finp" id="cpC" value="8" min="3" max="20"/></div>
+          <div class="col-md-6"><label class="flbl">Detail level</label>
+            <select class="finp" id="dlvl">
+              <option value="concise">Concise (fast)</option>
+              <option value="detailed" selected>Detailed (recommended)</option>
+              <option value="deep">Deep Mechanistic (thorough)</option>
+            </select>
+          </div>
+          <div class="col-12"><label class="flbl">Focus areas (optional)</label><input type="text" class="finp" id="foc" placeholder="e.g. enzyme deficiencies, pharmacology, renal physiology"/></div>
+          <div class="col-12"><button class="btn-p" onclick="saveKey()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save Settings</button></div>
+        </div>
+      </div>
+      <div class="stng">
+        <h5>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          Data Management
+        </h5>
+        <p style="font-size:.8rem;color:var(--mut);margin-bottom:.875rem">All data is stored locally. Export to back up your progress.</p>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn-o" onclick="exportData()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Data
+          </button>
+          <button class="btn-d" onclick="clearAll()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+            Clear All Data
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════ STUDY VIEW ════════ -->
+<div id="studyView">
+  <button class="ic-btn sc-btn" onclick="closeStudy()" aria-label="Close">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div class="sw">
+    <div class="sprog">
+      <div class="strack"><div class="sfill" id="sfill" style="width:0%"></div></div>
+      <span class="stxt" id="stxt">0 / 0</span>
+    </div>
+    <div class="fcard" id="fcard" onclick="flipCard()">
+      <div class="finner">
+        <div class="ffront">
+          <div class="clbl q">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-width="3"/></svg>
+            Question
+          </div>
+          <div class="cbody" id="sQ">Loading…</div>
+          <div style="margin-top:auto;padding-top:.875rem">
+            <span class="bs" id="sTopic" style="font-size:.73rem;padding:4px 12px;border-radius:100px"></span>
+          </div>
+        </div>
+        <div class="fback">
+          <div class="clbl a">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Answer
+          </div>
+          <div class="cbody" id="sA"></div>
+          <div class="cmech" id="sMech"></div>
+          <div id="sBuzz" style="margin-top:.625rem;font-size:.76rem;color:var(--mut);display:flex;align-items:center;gap:5px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="fhint" id="fhint">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+      Tap card to reveal answer &nbsp;·&nbsp; or press <kbd style="background:var(--sur2);border:1px solid var(--bdr2);border-radius:4px;padding:1px 6px;font-size:.69rem;font-family:monospace">Space</kbd>
+    </div>
+    <div class="rrow" id="rrow" style="display:none">
+      <button class="rbtn f" onclick="rate(0)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Forgot</button>
+      <button class="rbtn h" onclick="rate(1)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>Hard</button>
+      <button class="rbtn g" onclick="rate(3)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Good</button>
+      <button class="rbtn e" onclick="rate(5)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Easy</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let S={apiKey:'',decks:[],af:'all',as:'',ae:null,ad:null,sq:[],si:0,flip:false,cpc:8,dlv:'detailed',foc:'',se:'USMLE Step 1'};
+
+// ── CRYPTO AES-256-GCM + PBKDF2 ──
+const _CS='mf_s',_CK='mf_k',_CI='mf_i';
+function _salt(){let s=localStorage.getItem(_CS);if(!s){const b=crypto.getRandomValues(new Uint8Array(16));s=btoa(String.fromCharCode(...b));localStorage.setItem(_CS,s);}return Uint8Array.from(atob(s),c=>c.charCodeAt(0));}
+function _pw(){return[navigator.userAgent,navigator.language,screen.colorDepth,new Date().getTimezoneOffset(),navigator.hardwareConcurrency||''].join('|');}
+async function _dk(salt){const b=await crypto.subtle.importKey('raw',new TextEncoder().encode(_pw()),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},b,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
+async function encK(k){const salt=_salt(),key=await _dk(salt),iv=crypto.getRandomValues(new Uint8Array(12));const buf=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(k));localStorage.setItem(_CK,btoa(String.fromCharCode(...new Uint8Array(buf))));localStorage.setItem(_CI,btoa(String.fromCharCode(...iv)));}
+async function decK(){const e=localStorage.getItem(_CK),iv=localStorage.getItem(_CI);if(!e||!iv)return null;try{const key=await _dk(_salt());const p=await crypto.subtle.decrypt({name:'AES-GCM',iv:Uint8Array.from(atob(iv),c=>c.charCodeAt(0))},key,Uint8Array.from(atob(e),c=>c.charCodeAt(0)));return new TextDecoder().decode(p);}catch{return null;}}
+
+// ── INIT ──
+async function init(){
+  const raw=localStorage.getItem('mf_d');
+  if(raw){try{const p=JSON.parse(raw);const{apiKey:_,...r}=p;S={...S,...r};}catch{}}
+  const k=await decK();
+  if(k){S.apiKey=k;document.getElementById('apiIn').value='••••••••••••••••••••••••••';showEncBadge();}
+  document.getElementById('cpC').value=S.cpc||8;
+  document.getElementById('dlvl').value=S.dlv||'detailed';
+  document.getElementById('foc').value=S.foc||'';
+  updDot();rdDecks();rdBrowse();rdDue();rdStats();updBadge();setupDrop();
+}
+function save(){const{apiKey:_,...s}=S;localStorage.setItem('mf_d',JSON.stringify(s));}
+function showEncBadge(){const b=document.getElementById('encBadge');if(b)b.style.display='inline-flex';}
+
+// ── NAVIGATION ──
+const TITLES={home:'Home',library:'My Decks',browse:'Browse Cards',due:'Due Today',stats:'Statistics',settings:'Settings'};
+function go(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.s-lnk').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const l=document.querySelector(`[data-page="${p}"]`);if(l)l.classList.add('active');
+  document.getElementById('topTtl').textContent=TITLES[p]||p;
+  document.getElementById('playBtn').style.display=(p==='due'||p==='browse'||p==='library')?'flex':'none';
+  if(p==='browse'){rdBrowse();rdTopics();}
+  if(p==='due')rdDue();
+  if(p==='stats')rdStats();
+  if(p==='library')rdDecks();
+  closeSB();
+}
+function togSB(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('ov').classList.toggle('active');}
+function closeSB(){document.getElementById('sidebar').classList.remove('open');document.getElementById('ov').classList.remove('active');}
+function filterExam(e){S.ae=e;S.ad=null;go('browse');}
+function selX(el,e){document.querySelectorAll('.xpill').forEach(x=>x.classList.remove('on'));el.classList.add('on');S.se=e;}
+
+// ── FILE DROP ──
+function setupDrop(){
+  const z=document.getElementById('upzone');
+  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag');});
+  z.addEventListener('dragleave',()=>z.classList.remove('drag'));
+  z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('drag');const f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf')handleFile(f);else toast('Please drop a PDF file','error');});
+}
+
+async function handleFile(f){
+  if(!f)return;
+  if(!S.apiKey){toast('Set your API key in Settings first','error');go('settings');return;}
+  if(f.size>30*1024*1024){toast('PDF too large — max 30 MB','error');return;}
+  toast('Reading: '+f.name,'info');
+  document.getElementById('procBox').style.display='block';
+  document.getElementById('upzone').style.display='none';
+  animSteps();
+  try{
+    const txt=await exPdf(f);setS(2);
+    const exam=S.se||'USMLE Step 1';
+    const nm=f.name.replace(/\.pdf$/i,'');
+    const cards=await genCards(txt,nm,exam);setS(5);
+    S.decks.push({id:Date.now()+'',nm,name:nm,exam,createdAt:new Date().toISOString(),cards});
+    save();
+    document.getElementById('procBox').style.display='none';
+    document.getElementById('upzone').style.display='block';
+    document.getElementById('pdfIn').value='';
+    toast('✅ '+cards.length+' flashcards created from "'+nm+'"','success');
+    rdDecks();rdBrowse();updBadge();go('library');
+  }catch(err){
+    document.getElementById('procBox').style.display='none';
+    document.getElementById('upzone').style.display='block';
+    toast('Error: '+err.message,'error');
+  }
+}
+
+async function exPdf(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=async e=>{
+      try{
+        const arr=new Uint8Array(e.target.result);
+        if(typeof pdfjsLib==='undefined'){
+          const b64=btoa(Array.from(arr,b=>String.fromCharCode(b)).join(''));
+          res({t:'b64',d:b64});return;
+        }
+        const pdf=await pdfjsLib.getDocument({data:arr}).promise;
+        let txt='';
+        for(let i=1;i<=Math.min(pdf.numPages,90);i++){
+          const pg=await pdf.getPage(i);
+          const ct=await pg.getTextContent();
+          txt+=ct.items.map(s=>s.str).join(' ')+'\n';
+        }
+        res({t:'txt',d:txt});
+      }catch(e){rej(e);}
+    };
+    r.onerror=rej;r.readAsArrayBuffer(file);
+  });
+}
+
+// ── CARD GENERATION ──
+async function genCards(content,nm,exam){
+  setS(3);
+  const n=parseInt(S.cpc)||8,dl=S.dlv||'detailed',foc=S.foc?'PRIORITY FOCUS: '+S.foc:'';
+  const dmap={concise:'Answers: 2-3 sentences. Brief mechanism (1 sentence).',detailed:'Answers: thorough with clear mechanism.',deep:'Answers: comprehensive from first principles — molecular→cellular→tissue→organ→clinical.'};
+  let msgs;
+  if(content.t==='b64'){
+    msgs=[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:content.d}},{type:'text',text:prompt(nm,exam,n,dmap[dl],foc)}]}];
+  } else {
+    const chunks=chk(content.d,5500),all=[];
+    for(let i=0;i<Math.min(chunks.length,7);i++){setS(i<2?3:4);const c=await claude([{role:'user',content:prompt(nm,exam,n,dmap[dl],foc)+'\n\nPDF CONTENT:\n'+chunks[i]}]);all.push(...c);}
+    return all;
+  }
+  setS(4);return await claude(msgs);
+}
+
+function prompt(nm,exam,n,di,foc){
+return `You are a senior USMLE/MCCQE question writer with 20+ years experience at UWorld, AMBOSS, and NBME. Generate exactly ${n} high-yield flashcards for ${exam} from: "${nm}".
+${foc}
+
+MANDATORY QUESTION FORMAT — Choose the most appropriate per card:
+
+FORMAT A — Clinical Vignette (~60%): "A [age]-year-old [sex] presents with [complaint] for [duration]. [PMH/meds/social]. Exam: [findings]. Labs/imaging: [real numbers]. What is the most likely [diagnosis/mechanism/next step]?"
+
+FORMAT B — Mechanism/Pharmacology: "A patient with [condition] receives [drug/treatment]. Which mechanism explains [effect/side effect]?"
+
+FORMAT C — High-Yield Association: Include the classic buzzword IN the stem. "A [age]-year-old with [buzzword finding] most likely has deficiency in which [enzyme/receptor/pathway]?"
+
+FORMAT D — Clinical Decision: "A [age]-year-old with [condition] develops [new finding]. Labs: [real values]. Most appropriate next step?"
+
+FORMAT E — Distinguishing: "Which finding BEST differentiates [condition A] from [condition B] in a patient with [overlap]?"
+
+RULES:
+- Real lab values (e.g. Na 128 mEq/L, Hb 6.2 g/dL, pH 7.28), realistic vitals, actual timeframes
+- Age/sex/ethnicity when relevant: sickle cell→Black, G6PD→Mediterranean/African males, Tay-Sachs→Ashkenazi, PKU→Northern European
+- Board buzzwords IN the stem: mousy odor (PKU), blueberry muffin rash (CMV/rubella), boot-shaped heart (ToF), Kayser-Fleischer rings (Wilson), café-au-lait (NF1), strawberry tongue (Kawasaki)
+- Stem must NOT reveal the answer — student must reason
+- ${di}
+
+MECHANISM FIELD — the WHY from first principles (NOT a restatement of the answer):
+- Enzyme deficiency: normal function → what accumulates → WHY those symptoms
+- Drug: receptor/channel → signaling → clinical effect → why side effects occur
+- Disease: trigger → molecular defect → cell/tissue failure → organ → clinical signs
+- Minimum 3-5 sentences. Builds understanding, not memorization.
+
+DIFFICULTY: easy=pure recall/First Aid bullet | medium=vignette requiring application | hard=complex multi-step reasoning/atypical presentation
+
+Return ONLY valid JSON array, no markdown, no backticks:
+[{"question":"...","answer":"Direct answer. Key associations. Buzzwords. Mnemonic if applicable.","mechanism":"3-5 sentences from molecular level up — the WHY","topic":"System — Specific Topic","system":"Cardiovascular|Respiratory|Renal|Neurology|Biochemistry|Pharmacology|Microbiology|Immunology|GI|Endocrine|Hematology|MSK|Reproductive|Psychiatry|Dermatology|Ophthalmology","difficulty":"easy|medium|hard","exam":"${exam}","buzzwords":"2-4 key buzzwords comma-separated"}]`;
+}
+
+async function claude(msgs){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':S.apiKey,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,messages:msgs})
+  });
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+r.status);}
+  const d=await r.json();
+  const txt=d.content.filter(c=>c.type==='text').map(c=>c.text).join('');
+  try{
+    const cards=JSON.parse(txt.replace(/```json|```/g,'').trim());
+    return cards.map((c,i)=>({...c,id:Date.now()+'_'+i,mastery:0,interval:1,ef:2.5,due:new Date().toISOString(),rev:0}));
+  }catch{throw new Error('Could not parse flashcards. Try again.');}
+}
+
+function chk(t,sz){const a=[];for(let i=0;i<t.length;i+=sz)a.push(t.slice(i,i+sz));return a;}
+
+// ── STEP ANIMATION ──
+let _st;
+const SVGS={idle:'<circle cx="12" cy="12" r="10"/>',done:'<polyline points="20 6 9 17 4 12"/>',spin:'<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>'};
+function animSteps(){let s=1;_st=setInterval(()=>{setS(s++);if(s>5)clearInterval(_st);},1900);}
+function setS(n){for(let i=1;i<=5;i++){const el=document.getElementById('ps'+i);if(!el)continue;el.classList.remove('done','active');const ic=el.querySelector('.sti');if(i<n){el.classList.add('done');ic.innerHTML=SVGS.done;}else if(i===n){el.classList.add('active');ic.innerHTML=SVGS.spin;}else{ic.innerHTML=SVGS.idle;}}}
+
+// ── RENDER ──
+function aC(){return S.decks.flatMap(d=>d.cards.map(c=>({...c,dn:d.name,di:d.id})));}
+
+function rdDecks(){
+  const g=document.getElementById('decksGrid');
+  if(!S.decks.length){g.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="eico">📚</div><h4>No decks yet</h4><p>Upload a PDF to create your first deck</p></div>`;return;}
+  const ico={'USMLE Step 1':'🧬','USMLE Step 2CK':'🩺','USMLE Step 3':'🏥','MCCQE1':'🍁'};
+  const clr={'USMLE Step 1':'rgba(59,130,246,.15)','USMLE Step 2CK':'rgba(16,185,129,.15)','USMLE Step 3':'rgba(139,92,246,.15)','MCCQE1':'rgba(245,158,11,.15)'};
+  g.innerHTML=S.decks.map(d=>{
+    const due=d.cards.filter(c=>new Date(c.due)<=new Date()).length;
+    const mas=d.cards.filter(c=>c.mastery>=3).length;
+    const pct=d.cards.length?Math.round(mas/d.cards.length*100):0;
+    return `<div class="dcard" onclick="openDeck('${d.id}')">
+      <div class="dico" style="background:${clr[d.exam]||'rgba(59,130,246,.15)'}">${ico[d.exam]||'📚'}</div>
+      <div class="dnm">${x(d.name)}</div>
+      <div class="dinf">${d.cards.length} cards · ${d.exam} · <strong style="color:var(--gld)">${due} due</strong></div>
+      <div class="dpbar"><div class="dpfil" style="width:${pct}%"></div></div>
+      <div style="font-size:.7rem;color:var(--mut);margin-top:4px">${pct}% mastered</div>
+      <button class="btn-p mt-3" style="width:100%" onclick="event.stopPropagation();startStudy('deck','${d.id}')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Study Deck
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function openDeck(id){S.ae=null;S.ad=id;go('browse');}
+
+function rdBrowse(){
+  let cards=aC();
+  const q=(S.as||'').toLowerCase();
+  if(S.ad)cards=cards.filter(c=>c.di===S.ad);
+  if(S.ae)cards=cards.filter(c=>c.exam===S.ae);
+  if(q)cards=cards.filter(c=>c.question.toLowerCase().includes(q)||c.topic.toLowerCase().includes(q)||c.answer.toLowerCase().includes(q)||(c.system||'').toLowerCase().includes(q)||(c.buzzwords||'').toLowerCase().includes(q));
+  if(S.af==='easy')cards=cards.filter(c=>c.difficulty==='easy');
+  else if(S.af==='medium')cards=cards.filter(c=>c.difficulty==='medium');
+  else if(S.af==='hard')cards=cards.filter(c=>c.difficulty==='hard');
+  else if(S.af==='due')cards=cards.filter(c=>new Date(c.due)<=new Date());
+  const g=document.getElementById('cardsGrid');
+  if(!cards.length){g.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="eico">🃏</div><h4>No cards found</h4><p>${aC().length?'Adjust your search or filters':'Upload a PDF to generate cards'}</p></div>`;return;}
+  g.innerHTML=cards.slice(0,120).map(c=>fcH(c)).join('');
+}
+
+function fcH(c){
+  const dots=[1,2,3,4,5].map(i=>`<div class="md${c.mastery>=i?' on':''}"></div>`).join('');
+  const bw=c.buzzwords?`<div class="fc-bw"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7" stroke-width="3"/></svg>${x(c.buzzwords)}</div>`:'';
+  return `<div class="fci ${c.difficulty||'medium'}" onclick="studyOne('${c.id}')">
+    <div class="fc-top">${x(c.topic||c.system||'')}</div>
+    <div class="fc-q">${x(c.question)}</div>
+    ${bw}
+    <div class="fc-meta">
+      <span class="bd ${c.difficulty||'medium'}">${c.difficulty||'medium'}</span>
+      <span class="bs">${x(c.system||'General')}</span>
+      <div class="mdots">${dots}</div>
+    </div>
+  </div>`;
+}
+
+function rdTopics(){
+  const cnt={};aC().forEach(c=>{const t=c.system||'General';cnt[t]=(cnt[t]||0)+1;});
+  const l=document.getElementById('topicList');
+  if(!Object.keys(cnt).length){l.innerHTML=`<li style="font-size:.8rem;color:var(--mut);padding:.4rem 0">No topics yet</li>`;return;}
+  l.innerHTML=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,n])=>
+    `<li class="titem" onclick="srchTopic('${x(t)}')"><span>${x(t)}</span><span class="tcnt">${n}</span></li>`
+  ).join('');
+}
+
+function rdDue(){
+  const due=aC().filter(c=>new Date(c.due)<=new Date());
+  const g=document.getElementById('dueGrid');
+  document.getElementById('startDueBtn').style.display=due.length?'flex':'none';
+  if(!due.length){g.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="eico">✅</div><h4>All caught up!</h4><p>No cards due right now.</p></div>`;return;}
+  g.innerHTML=due.slice(0,60).map(c=>fcH(c)).join('');
+}
+
+function rdStats(){
+  const all=aC(),now=new Date();
+  document.getElementById('stT').textContent=all.length;
+  document.getElementById('stM').textContent=all.filter(c=>c.mastery>=3).length;
+  document.getElementById('stD').textContent=all.filter(c=>new Date(c.due)<=now).length;
+  document.getElementById('stDk').textContent=S.decks.length;
+  const sys={};all.forEach(c=>{const s=c.system||'General';if(!sys[s])sys[s]={t:0,m:0};sys[s].t++;if(c.mastery>=3)sys[s].m++;});
+  const tp=document.getElementById('topicProg');
+  if(!Object.keys(sys).length){tp.innerHTML=`<p style="color:var(--mut);font-size:.85rem">No data yet.</p>`;return;}
+  tp.innerHTML=Object.entries(sys).sort((a,b)=>b[1].t-a[1].t).map(([s,v])=>{
+    const pct=Math.round(v.m/v.t*100);
+    return `<div style="margin-bottom:.7rem">
+      <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:4px"><span>${x(s)}</span><span style="color:var(--mut)">${v.m}/${v.t}</span></div>
+      <div style="height:4px;background:var(--bdr);border-radius:2px;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function updBadge(){const n=aC().filter(c=>new Date(c.due)<=new Date()).length;const b=document.getElementById('dueBadge');b.textContent=n||'';b.style.display=n?'inline':'none';}
+
+// ── FILTER / SEARCH ──
+function setChip(el,v){document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.af=v;rdBrowse();}
+function filterCards(){S.as=document.getElementById('srchIn').value;rdBrowse();}
+function srchTopic(t){document.getElementById('srchIn').value=t;S.as=t;rdBrowse();}
+
+// ── STUDY SESSION (SM-2) ──
+function startStudy(mode,did){
+  let cards=aC();
+  if(mode==='due')cards=cards.filter(c=>new Date(c.due)<=new Date());
+  else if(mode==='deck'&&did)cards=cards.filter(c=>c.di===did);
+  if(!cards.length){toast('No cards to study right now!','info');return;}
+  S.sq=shuffle(cards);S.si=0;openStudy();
+}
+function studyOne(id){const c=aC().find(x=>x.id===id);if(!c)return;S.sq=[c];S.si=0;openStudy();}
+function openStudy(){document.getElementById('studyView').classList.add('active');S.flip=false;loadCard();}
+function closeStudy(){document.getElementById('studyView').classList.remove('active');save();rdBrowse();rdDue();rdStats();updBadge();}
+
+function loadCard(){
+  const c=S.sq[S.si];
+  if(!c){closeStudy();toast('🎉 Session complete!','success');return;}
+  const tot=S.sq.length,pct=Math.round(S.si/tot*100);
+  document.getElementById('sfill').style.width=pct+'%';
+  document.getElementById('stxt').textContent=(S.si+1)+' / '+tot;
+  document.getElementById('sQ').textContent=c.question;
+  document.getElementById('sA').textContent=c.answer;
+  document.getElementById('sMech').innerHTML=c.mechanism?'<strong>⚡ Mechanism:</strong> '+c.mechanism:'';
+  document.getElementById('sBuzz').innerHTML=c.buzzwords?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7" stroke-width="3"/></svg><strong style="color:var(--txt)">Buzzwords:</strong> '+c.buzzwords:'';
+  document.getElementById('sTopic').textContent=c.topic||c.system||'';
+  document.getElementById('fcard').classList.remove('flipped');
+  S.flip=false;
+  document.getElementById('rrow').style.display='none';
+  document.getElementById('fhint').style.display='flex';
+}
+
+function flipCard(){
+  if(S.flip)return;S.flip=true;
+  document.getElementById('fcard').classList.add('flipped');
+  document.getElementById('rrow').style.display='flex';
+  document.getElementById('fhint').style.display='none';
+}
+
+function rate(q){
+  const c=S.sq[S.si];if(!c)return;
+  for(const d of S.decks){
+    const i=d.cards.findIndex(x=>x.id===c.id);if(i===-1)continue;
+    const card=d.cards[i];
+    if(q<3){card.interval=1;card.mastery=Math.max(0,(card.mastery||0)-1);}
+    else{const ef=Math.max(1.3,(card.ef||2.5)+0.1-(5-q)*0.08);card.ef=ef;card.interval=card.rev<1?1:card.rev===1?6:Math.round(card.interval*ef);card.mastery=Math.min(5,(card.mastery||0)+(q>=4?2:1));}
+    card.due=new Date(Date.now()+card.interval*86400000).toISOString();card.rev=(card.rev||0)+1;break;
+  }
+  S.si++;save();loadCard();
+}
+
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
+
+// ── SETTINGS ──
+async function saveKey(){
+  const raw=document.getElementById('apiIn').value.trim();
+  const masked=/^•+$/.test(raw);
+  if(!masked){
+    if(!raw){toast('Enter your API key','error');return;}
+    if(!raw.startsWith('sk-ant-')){toast('Key must start with sk-ant-…','error');return;}
+    await encK(raw);S.apiKey=raw;
+    document.getElementById('apiIn').value='••••••••••••••••••••••••••';
+    showEncBadge();toast('🔐 API key encrypted and saved locally','success');
+  }
+  S.cpc=parseInt(document.getElementById('cpC').value)||8;
+  S.dlv=document.getElementById('dlvl').value;
+  S.foc=document.getElementById('foc').value;
+  save();updDot();
+  if(masked)toast('Settings saved','success');
+}
+
+function togEye(){
+  const inp=document.getElementById('apiIn'),ic=document.getElementById('eyeSvg');
+  if(inp.type==='password'){inp.type='text';ic.innerHTML='<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';}
+  else{inp.type='password';ic.innerHTML='<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';}
+}
+
+function updDot(){
+  const dot=document.getElementById('apiDot'),txt=document.getElementById('apiTxt');
+  if(S.apiKey){dot.className='dot on';txt.textContent='API key active';}
+  else{dot.className='dot';txt.textContent='API key not set';}
+}
+
+function exportData(){
+  const blob=new Blob([JSON.stringify({decks:S.decks,exported:new Date().toISOString()},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ankimedo_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  toast('Data exported','success');
+}
+
+function clearAll(){
+  if(!confirm('Delete ALL decks and flashcards? Cannot be undone.'))return;
+  S.decks=[];save();rdDecks();rdBrowse();rdStats();updBadge();toast('All data cleared','info');
+}
+
+// ── TOAST ──
+function toast(msg,type='info'){
+  const clr={success:'var(--grn)',error:'var(--red)',info:'var(--acc)'};
+  const d=document.createElement('div');d.className='titem '+type;
+  d.innerHTML=`<span style="width:8px;height:8px;border-radius:50%;background:${clr[type]};flex-shrink:0;display:inline-block"></span><span>${msg}</span>`;
+  document.getElementById('tw').appendChild(d);setTimeout(()=>d.remove(),4200);
+}
+
+// ── UTIL ──
+function x(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('studyView').classList.contains('active'))return;
+  if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!S.flip)flipCard();}
+  if(S.flip){if(e.key==='1')rate(0);if(e.key==='2')rate(1);if(e.key==='3')rate(3);if(e.key==='4')rate(5);}
+  if(e.key==='Escape')closeStudy();
+});
+
+// ── BOOT ──
+init().catch(console.error);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+</script>
+
+<!-- PDF.js (cdn.jsdelivr.net is in the allowed CDN list) -->
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>if(typeof pdfjsLib!=='undefined')pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';</script>
+</body>
+</html>
