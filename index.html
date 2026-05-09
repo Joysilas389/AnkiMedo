@@ -57,7 +57,7 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
 .dot.on{background:var(--grn)}
 
 /* ── MAIN ── */
-#main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+#main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:visible}
 
 /* ── TOPBAR ── */
 #topbar{
@@ -200,8 +200,8 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
 .empty h4{font-family:var(--fh);color:var(--txt);margin-bottom:.35rem}
 
 /* ── STUDY VIEW ── */
-#study{position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
-#study.on{display:block}
+#study{position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch;pointer-events:none}
+#study.on{display:block;pointer-events:all}
 .study-inner{max-width:640px;margin:0 auto;padding:1.25rem 1rem 3rem}
 .study-close{background:var(--sur2);border:1px solid var(--bdr2);color:var(--mut);width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-left:auto;margin-bottom:1rem}
 .study-close:hover{color:var(--txt)}
@@ -232,8 +232,8 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fb
 .rbtn.e{border-color:var(--acc);color:var(--acc);background:rgba(59,130,246,.07)}.rbtn.e:hover{background:rgba(59,130,246,.18)}
 
 /* ── MODAL ── */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;align-items:flex-end;justify-content:center}
-.modal.on{display:flex}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;align-items:flex-end;justify-content:center;pointer-events:none}
+.modal.on{display:flex;pointer-events:all}
 .msheet{background:var(--sur);border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;padding:1.375rem;-webkit-overflow-scrolling:touch}
 .mhandle{width:38px;height:4px;background:var(--bdr2);border-radius:2px;margin:0 auto 1.125rem}
 .mttl{font-family:var(--fh);font-size:1rem;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
