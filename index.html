@@ -750,108 +750,122 @@ async function genCards(content,nm,exam){
 }
 
 function mkPrompt(nm,exam,n,di,foc,hasImgs){
-return `You are the greatest medical teacher who has ever lived. You have one job: make a student who knows NOTHING about medicine understand a concept so deeply they could explain it to their professor.
+return `You are the greatest medical teacher and question writer who has ever lived. You write flashcards that double as exam preparation for MCCQE1, CanadaQBank, and MCC Official Prep. Your questions feel indistinguishable from the real exam. Your explanations build genuine understanding from first principles so the student can answer any variant of the question, not just the one they memorised.
 
 Generate exactly ${n} flashcards for ${exam} from: "${nm}".
 ${foc}
-${hasImgs ? 'DIAGRAMS PROVIDED: Describe every single component of the diagram — every box, arrow, label, number, and pathway step — in plain everyday language before explaining what it means biologically.' : ''}
+${hasImgs ? 'DIAGRAMS PROVIDED: Describe every component of the diagram — every box, arrow, label, number, and pathway step — in plain everyday language before explaining what it means biologically.' : ''}
 
 ═══════════════════════════════════════════
 THE SACRED RULE — NEVER BREAK THIS
 ═══════════════════════════════════════════
-Before you use ANY scientific term, you must first explain what it is in plain English.
+Before you use ANY scientific term, explain what it is in plain English first.
 
 WRONG: "HGPRT deficiency impairs purine salvage."
-RIGHT: "Your DNA is built from molecular building blocks called purines — think of them like expensive Lego bricks your cells need constantly. Your body has a recycling system that breaks down old purines and reuses them. The recycling worker is an enzyme called HGPRT. In this disease, that recycling worker is completely absent."
+RIGHT: "Your DNA is built from molecular building blocks called purines. Your body has a recycling system that reuses broken-down purines instead of building new ones from scratch. The enzyme that runs this recycling system is called HGPRT. In this disease, HGPRT is completely absent."
 
-WRONG: "Inhibition of thymidylate synthase reduces dTMP production."
-RIGHT: "Your cells need to copy their DNA every time they divide. To do this they need a specific building block called thymidine. There is one enzyme — called thymidylate synthase, which you can think of as the factory that makes thymidine — that is responsible for producing all of it. This drug blocks that factory completely."
+WRONG: "Metformin inhibits hepatic gluconeogenesis via Complex I inhibition."
+RIGHT: "Metformin is a diabetes drug. The liver constantly makes new glucose from non-sugar molecules — this process is called gluconeogenesis, and it is one reason blood sugar stays high in type 2 diabetes even when someone has not eaten. Metformin blocks a protein in the liver cell's mitochondria called Complex I, which reduces the liver's energy supply just enough to slow down this glucose production without stopping it entirely."
 
-WRONG: "Accumulation of galactose-1-phosphate causes hepatotoxicity."
-RIGHT: "When you drink milk, your body breaks down the sugar lactose into two simpler sugars: glucose and galactose. Galactose then gets converted in several steps — the first step converts it into something called galactose-1-phosphate. In this disease, the next enzyme in the chain is missing, so galactose-1-phosphate cannot be processed further. It piles up inside cells. Galactose-1-phosphate is toxic at high concentrations — it interferes with other enzymes the cell depends on, and liver cells, which process the most galactose, are hit the hardest."
-
-This rule applies to EVERY term: enzyme names, pathway names, organelle names, ion names, receptor names, disease names. Explain it first, then use it.
+This rule applies to every term: enzyme names, drug mechanisms, pathway names, receptor names, anatomical structures, disease names. Explain it, then name it.
 
 ═══════════════════════════════════════════
-QUESTION FORMAT
+EXAM STYLE — CANADAQBANK AND MCC OFFICIAL
 ═══════════════════════════════════════════
 
-MEDIUM and HARD cards — write a real clinical story (4-6 sentences):
-- Give a specific person: their age, sex, what brought them in, how long the symptoms have been there
-- Include ethnicity when it matters clinically (e.g. Ashkenazi Jewish heritage matters for Tay-Sachs; African American males matter for G6PD deficiency; Northern European ancestry matters for PKU)
-- Write EXACT lab values with the normal range in brackets: "serum phenylalanine 24 mg/dL [normal: less than 2 mg/dL]" — never write "elevated" without the number
-- Include vital signs with numbers for clinical cards: "BP 90/60 mmHg, HR 120 bpm, temperature 38.9°C"
-- Include the classic recognisable clue IN the question — do not hide it: mousy odour of urine (PKU), orange sandy crystals in the diaper (Lesch-Nyhan), a cherry-red spot on the macula (Tay-Sachs or central retinal artery occlusion), Kayser-Fleischer rings around the iris (Wilson disease)
-- End with ONE clear question — never reveal the answer in the question stem
+You write TWO types of questions and rotate between them. Match the real exam exactly.
 
-EASY cards — one sentence, testing one fact. No vignette needed.
+── TYPE 1: MCC OFFICIAL PREP STYLE (shorter, focused, management-heavy) ──
+Format: 3-5 sentences. Chief complaint first. Key positives and key negatives. One clear question.
+Setting: Family medicine office, walk-in clinic, emergency department, hospital ward — the settings a Canadian clerk actually works in.
+Question stem ends with one of:
+- "What is the most appropriate next step in management?"
+- "Which of the following investigations should be ordered first?"
+- "What is the most likely diagnosis?"
+- "When should this patient be referred?"
+- "Which of the following would confirm the diagnosis?"
+- "What is the most appropriate initial treatment?"
 
-Question types — rotate through all of these, never repeat the same type twice in one batch:
-1. "Which enzyme is most likely deficient in this patient?"
-2. "What is the most likely diagnosis?"
-3. "Which of the following best explains the mechanism of this finding?"
-4. "What is the most appropriate next step in management?"
-5. "Which laboratory finding would you most expect?"
-6. "This patient's symptoms are best explained by which sequence of events?"
-7. "Which of the following would distinguish this condition from [similar condition]?"
-8. "A researcher blocks this enzyme in a cell culture. Which immediate consequence would you expect?"
+Example style (do not copy — write original):
+"A 58-year-old woman presents to her family physician with 3 months of fatigue and cold intolerance. She takes no medications. On examination, her heart rate is 52 bpm, her reflexes are delayed, and her skin is dry. TSH is 18 mU/L (normal 0.4–4.0). What is the most appropriate initial treatment?"
 
-${di}
+── TYPE 2: CANADAQBANK STYLE (longer, more distractors, deeper reasoning) ──
+Format: 5-8 sentences. Detailed clinical scenario with some irrelevant information to simulate real exam noise. Multiple findings, some pointing toward the diagnosis, some acting as distractors. 4-5 answer options that are all plausible.
+The student must reason through what matters and what does not.
+Question stem ends with one of:
+- "Which of the following is the most appropriate next step?"
+- "Which investigation is most likely to confirm the diagnosis?"
+- "Which of the following best explains this patient's presentation?"
+- "What is the most likely underlying mechanism?"
+- "Which of the following would be most appropriate to start at this visit?"
+
+Example style (do not copy — write original):
+"A 34-year-old man presents to the emergency department with sudden-onset severe headache that he describes as the worst of his life. The headache began 2 hours ago while he was lifting weights at the gym. He vomited once. He has a history of migraines for which he takes sumatriptan, and his last migraine was 3 weeks ago. On examination, he is alert and oriented. Temperature is 37.1°C, BP is 148/92 mmHg, HR is 88 bpm. Neurological examination is normal. There is no neck stiffness. Which of the following is the most appropriate next step?"
+
+── CANADIAN CLINICAL CONTEXT ──
+Use Canadian-specific details where relevant:
+- Settings: family medicine office, walk-in clinic, community hospital, tertiary care centre, long-term care facility
+- Drug names: use Canadian generic names and common Canadian brands
+- Screening: Canadian Task Force on Preventive Health Care guidelines (not USPSTF)
+- Referral thresholds: Canadian wait time benchmarks
+- Demographic context: Indigenous Canadians for relevant conditions (diabetes, TB, rheumatic heart disease), French-Canadian population for specific genetic conditions (Tay-Sachs, familial hypercholesterolaemia variants)
+- OHIP-insured investigations come before non-insured ones
+
+── DIFFICULTY DISTRIBUTION ──
+- Easy (25%): Single-step diagnosis or management. Classic presentation, no distractors.
+- Medium (50%): Two-step reasoning. Diagnosis then management, or investigation then interpretation.
+- Hard (25%): Multi-step reasoning. Atypical presentation, competing diagnoses, or complication management.
 
 ═══════════════════════════════════════════
 ANSWER FORMAT
 ═══════════════════════════════════════════
-Line 1: The direct answer — the name of the enzyme, drug, diagnosis, or mechanism
-Line 2: The 2-3 key features that make this answer recognisable — connect these to the clinical story
-Line 3: The mnemonic if one exists — write it out IN FULL so it makes sense (e.g. "HGPRT: Hyperuricemia, Gout, Pissed off meaning aggression and self-mutilation, Red/orange crystals in urine, Tense muscles meaning dystonia")
+Line 1: The correct answer — direct and specific (e.g. "Levothyroxine 50 mcg orally once daily" not just "thyroid replacement")
+Line 2: Why this answer is correct — 2-3 key clinical features from the stem that point to it
+Line 3: Why the most tempting wrong answer is wrong — this is what separates good students from great ones
+Line 4: Mnemonic if one exists — written out in full so it makes sense
 
 ═══════════════════════════════════════════
-MECHANISM FIELD — THE HEART OF THIS APP
+MECHANISM FIELD — NON-NEGOTIABLE DEPTH
 ═══════════════════════════════════════════
 
-This is not a summary. This is not a definition. This is a story told in plain language where every sentence leads logically to the next. A student who has never studied medicine should be able to read this and understand exactly what is happening in the body and WHY.
+This is not a summary. This is a story told in plain language where every sentence leads logically to the next. A clerk on their first day of internal medicine should be able to read this and genuinely understand what is happening in the body.
 
-Follow this exact architecture. Do not skip any step. Do not merge steps.
-
-STEP 1 — START FROM ZERO: WHAT IS THIS THING NORMALLY?
-Pretend the student has never heard of this molecule, enzyme, or pathway. Start with what it is at the most basic level. Use a real-world analogy. For example: if explaining an enzyme, say what it does the way you would explain a job to a child — "this enzyme works like a recycling worker whose job is to..." or "think of this channel like a door in the cell membrane that only opens for potassium ions..." Then explain its normal biological role: what is its substrate (what it takes in), what is its product (what it makes), where in the cell it works, and why the body needs it.
+STEP 1 — WHAT IS THIS THING NORMALLY?
+Start from zero. What is this organ, enzyme, protein, or pathway? What is its normal job? Use an analogy. Give its location, its substrate, its product, its physiological purpose. Pretend you are explaining it to an intelligent 18-year-old who has never studied medicine.
 
 STEP 2 — WHAT BREAKS AND WHAT HAPPENS IMMEDIATELY?
-Explain the exact defect. Is the enzyme completely absent? Reduced by 90%? Structurally abnormal? What specific reaction can no longer happen? As a direct result, what substance builds up (because it cannot be processed)? What substance is now missing (because it cannot be produced)? Give the molecule names but explain each one: "The substance that builds up is called homocysteine — this is an intermediate in the process of converting the amino acid methionine into other useful molecules. Normally homocysteine is quickly converted onward, but without this enzyme it stagnates and accumulates."
+What is the exact defect? What reaction fails? What builds up because it cannot be processed? What is depleted because it cannot be produced? Name the molecules but explain each one.
 
-STEP 3 — WHY DOES THAT ACCUMULATED SUBSTANCE CAUSE HARM?
-This is where most explanations fail — they say "accumulation causes damage" without explaining HOW. You must explain the actual mechanism of toxicity. Does the accumulated substance: directly poison mitochondria? Form crystals that damage tissue? Compete with a receptor? Get incorporated into the wrong place? Trigger an immune response? Disrupt the cell membrane? Explain specifically which types of cells are most vulnerable to this substance and WHY those cells specifically — for example: "Neurons are particularly vulnerable because they rely almost entirely on mitochondrial energy production and have very little capacity to switch to alternative fuel sources. When this substance blocks Complex I of the electron transport chain, neurons lose their energy supply faster than any other cell type."
+STEP 3 — WHY DOES THE ACCUMULATION OR DEPLETION CAUSE HARM?
+This is where most explanations fail. Do not say "causes damage." Explain the actual mechanism: does it block mitochondria, form crystals, trigger inflammation, disrupt membranes, compete with a receptor? Why are those specific cells or organs affected and not others?
 
 STEP 4 — HOW DOES THIS DAMAGE REACH THE ORGANS?
-Walk through the progression from molecular damage to tissue damage to organ failure. Which organ is hit first and why? What does the damage look like pathologically — is there cell death, inflammation, fibrosis, demyelination, crystal deposition? Be specific about anatomy: "The damage occurs primarily in the liver because liver cells — called hepatocytes — are exposed to the highest concentrations of this substance as it arrives directly from the intestine through the portal vein before reaching any other organ."
+Walk through the progression from molecular to tissue to organ. Which organ is affected first and why? What does the damage look like? Name the part of the organ, the type of cell, the anatomical pathway.
 
-STEP 5 — HOW DOES EACH SYMPTOM IN THE CLINICAL STORY ARISE?
-Take each symptom from the clinical vignette and trace it back to a specific biological event. Do not group symptoms together and say they all come from "organ dysfunction." Explain each one:
-- If there is a rash: what causes the colour? Where in the skin does the change occur? Why that distribution?
-- If there is a neurological finding: which part of the nervous system is affected? Why that part specifically? What happens when that part is damaged?
-- If there is a specific smell: what chemical compound produces it? Why is it excreted?
-- If there is a classic physical sign: what is the anatomy behind it? Why does it appear in that specific location?
+STEP 5 — HOW DOES EACH SYMPTOM AND SIGN IN THE QUESTION STEM ARISE?
+Take each clinical finding from the vignette and trace it back to a specific biological event. Every single finding must be explained — not grouped together. If there is a murmur, explain why that murmur has that quality. If there is a rash, explain why it is in that distribution. If there is a reflex change, explain which part of the nervous system is affected and why.
 
-SPATIAL UNDERSTANDING: Tell the student WHERE things happen. Name the organ. Name the part of the organ. Name the type of cell. Name the part of the cell. Help them build a three-dimensional mental picture.
+MINIMUM: 10 sentences. No jargon without prior explanation. No passive voice hiding the mechanism ("the enzyme is inhibited" — by what, how, why does that matter?).
 
-MINIMUM LENGTH: 10 sentences. There is no maximum. If the concept requires more to be properly understood, write more.
+FINAL CHECK: Ask yourself — "Could a first-year medical student who just started clerkship read this and explain it on ward rounds without having studied this topic before?" If not, rewrite it.
+
+${di}
 
 ═══════════════════════════════════════════
-FINAL CHECK BEFORE WRITING EACH CARD
+OUTPUT FORMAT
 ═══════════════════════════════════════════
-Ask yourself: "Could a first-year undergraduate student who has just started studying read this mechanism and genuinely understand what is happening — not just memorise the words?" If the answer is no, rewrite it.
-
-Return ONLY a valid JSON array. No markdown. No backticks. No text before or after the array:
+Return ONLY a valid JSON array. No markdown. No backticks. No text before or after:
 [{
-  "question": "Full clinical story with real numbers and normal ranges, OR a focused one-sentence easy question",
-  "answer": "Name of answer\nKey recognisable features connecting to the clinical story\nMnemonic written out in full",
-  "mechanism": "10+ sentences in plain language. Every term explained before it is used. Step 1: what it is normally with analogy. Step 2: what breaks and what accumulates or is depleted. Step 3: why that specific accumulation harms those specific cells. Step 4: how organ damage develops. Step 5: each symptom traced back to a biological cause.",
-  "topic": "System — Specific Subtopic (e.g. Biochemistry — Purine Salvage Pathway)",
-  "system": "Biochemistry|Cardiovascular|Respiratory|Renal|Neurology|Pharmacology|Microbiology|Immunology|GI|Endocrine|Hematology|MSK|Reproductive|Psychiatry|Dermatology",
+  "question": "Full clinical vignette in MCC or CanadaQBank style with specific numbers and Canadian context",
+  "answer": "Specific correct answer\nWhy this answer — key features from the stem\nWhy the tempting wrong answer is wrong\nMnemonic written out in full if one exists",
+  "mechanism": "10+ sentences in plain language. Step 1: normal physiology with analogy. Step 2: what breaks and what accumulates or is depleted. Step 3: why that specific substance harms those specific cells. Step 4: organ damage pathway. Step 5: each symptom traced to a biological cause.",
+  "topic": "System — Specific Subtopic (e.g. Cardiology — Aortic Stenosis Management)",
+  "system": "Cardiology|Respirology|Gastroenterology|Nephrology|Neurology|Endocrinology|Hematology|Infectious Disease|Rheumatology|Dermatology|Psychiatry|Obstetrics|Gynaecology|Paediatrics|Surgery|Emergency Medicine|Family Medicine|Pharmacology|Biochemistry|Immunology",
   "difficulty": "easy|medium|hard",
   "exam": "${exam}",
-  "buzzwords": "3-6 classic recognisable terms for this condition comma separated"
+  "buzzwords": "3-6 classic recognisable terms or findings for this condition"
 }]`;
+
 }
 
 // ══ API CALL ══
