@@ -780,26 +780,82 @@ async function genCards(content,nm,exam){
 }
 
 function mkPrompt(nm,exam,n,di,foc,hasImgs){
-return `You are the world's most rigorous medical educator — combining depth of Guyton physiology, Robbins pathology, Goodman & Gilman pharmacology, and clinical precision of UWorld. Generate exactly ${n} flashcards for ${exam} from: "${nm}".
+return `You are the best medical teacher in the world. Your job is to make sure ANY student — even one with zero medical background — can read your flashcard and truly understand what is happening, why it happens, and how it connects to what they see in a patient or exam question.
+
+Generate exactly ${n} flashcards for ${exam} from: "${nm}".
 ${foc}
-${hasImgs?'DIAGRAMS PROVIDED: Describe every label, arrow, step and spatial relationship. Incorporate into mechanism field explicitly.':''}
+${hasImgs ? 'DIAGRAMS PROVIDED: Walk through every part of the diagram — what each box, arrow, label, and pathway step means in plain language. Explain it like you are guiding someone through it for the first time.' : ''}
 
-QUESTION FORMAT (UWORLD PRECISION):
-MEDIUM/HARD = 4-6 sentence clinical vignette: "A [age]-year-old [sex][ethnicity if relevant] presents to [setting] with [complaint] for [duration]. Vitals: [EXACT numbers]. Exam: [specific findings]. Labs: [REAL values — serum uric acid 11.4 mg/dL, Na⁺ 124 mEq/L, WBC 18,200/μL]. Which of the following [diagnosis/mechanism/next step]?"
-EASY = single buzzword→diagnosis recall, no vignette needed.
+══ GOLDEN RULE ══
+Never assume the student already knows anything. Every term you use must be explained the first time it appears. Build understanding from the ground up — start with what something IS before saying what it DOES.
 
-RULES: Real lab values always. Ethnicity when relevant. Classic buzzwords IN the stem. Never reveal answer in stem. ${di}
+══ QUESTION FORMAT ══
 
-MECHANISM FIELD — 5-STEP CAUSAL CHAIN (NOT a summary — explicit connections between every step):
-Step 1 — NORMAL PHYSIOLOGY: What does this enzyme/receptor/pathway do normally? Substrate, product, cofactor, cellular location, physiological purpose.
-Step 2 — THE DEFECT: Gene mutation → missing protein → which reaction fails → what accumulates → what is depleted.
-Step 3 — CELLULAR TOXICITY: How does accumulation/depletion damage cells? Which cells most vulnerable and WHY?
-Step 4 — ORGAN CONSEQUENCES: How does cell damage translate to organ dysfunction? Anatomical and spatial reasoning.
-Step 5 — CLINICAL SIGNS EXPLAINED: How does organ dysfunction produce EACH specific symptom? Why are certain findings pathognomonic? What is the spatial/anatomical basis?
-Minimum 6 sentences. No steps skipped. No abstractions without explanation.
+For MEDIUM and HARD cards, write a full clinical story (4-6 sentences):
+- Start with a real person: their age, sex, background, what brought them in
+- Describe what the doctor sees, hears, and measures — with EXACT numbers (not "elevated", say "serum uric acid 11.4 mg/dL where normal is 2.4–6.0 mg/dL")
+- Include one or two findings that are the classic clues — but do NOT name the diagnosis
+- End with one focused question
 
-Return ONLY valid JSON array, no markdown, no backticks:
-[{"question":"Full vignette or easy question","answer":"Direct answer\\nKey associations and buzzwords\\nMnemonic if applicable","mechanism":"5-step chain min 6 sentences — WHY from molecular to bedside","topic":"System — Specific Subtopic","system":"Biochemistry|Cardiovascular|Respiratory|Renal|Neurology|Pharmacology|Microbiology|Immunology|GI|Endocrine|Hematology|MSK|Reproductive|Psychiatry|Dermatology","difficulty":"easy|medium|hard","exam":"${exam}","buzzwords":"3-6 board buzzwords"}]`;
+For EASY cards: one clear sentence that tests a single fact.
+
+Rotate through these question types:
+- "Which enzyme is most likely deficient in this patient?"
+- "What is the most likely diagnosis?"
+- "Which mechanism best explains this finding?"
+- "What is the most appropriate next step in management?"
+- "What would you most likely find on laboratory testing?"
+- "This complication is best explained by which sequence of events?"
+
+Rules for writing questions:
+✓ Use REAL lab values with normal ranges in brackets e.g. "serum sodium 118 mEq/L [normal 135–145]"
+✓ Include age, sex, and ethnicity when it matters clinically (e.g. Ashkenazi Jewish descent, African American male, Mediterranean ancestry)
+✓ Put the classic recognisable clue IN the question — not just in the answer
+✓ Never write the diagnosis or answer into the question itself
+✓ ${di}
+
+══ ANSWER FORMAT ══
+
+Line 1: The direct answer — what it is called
+Line 2: The key features that make this diagnosis or finding recognisable
+Line 3: A memory trick or mnemonic if one exists — written out fully so it makes sense
+
+══ MECHANISM FIELD — THIS IS THE MOST IMPORTANT PART ══
+
+This is not a summary. This is a story of cause and effect, told step by step, in plain language.
+
+Your explanation must follow this exact journey:
+
+STEP 1 — WHAT IS THIS THING NORMALLY?
+Start from zero. Explain what this enzyme, protein, channel, hormone, or pathway is and what its normal job is — as if explaining to someone who has never heard of it. Use an analogy if it helps. Example: "Think of this enzyme like a recycling worker whose job is to take used purine molecules — the building blocks of DNA — and convert them back into usable form rather than throwing them away."
+
+STEP 2 — WHAT GOES WRONG?
+Explain the mutation or deficiency in plain English. What part is broken? Is the enzyme completely absent, or just working at 10% capacity? What does this mean for its job? What is it supposed to process that is now building up because it cannot be processed?
+
+STEP 3 — WHAT BUILDS UP AND WHY DOES THAT MATTER?
+Name the substance that accumulates. Then explain — in non-jargon terms — why accumulation of THAT specific substance causes harm. Is it toxic to certain cells? Does it form crystals? Does it block another process? Does it compete with something else? WHY are those particular cells or organs affected and not others? (e.g. "The reason joints are affected is because uric acid becomes insoluble at the lower temperature found in peripheral joints like the big toe, forming needle-shaped crystals that the immune system attacks")
+
+STEP 4 — HOW DOES THIS DAMAGE THE BODY?
+Walk through what happens at the tissue and organ level. Which organs are hit first? Why those organs specifically? What does the damage look like under a microscope or on a scan? What function is lost?
+
+STEP 5 — HOW DOES THIS PRODUCE THE SYMPTOMS THE PATIENT HAS?
+Connect every symptom in the clinical story back to a specific biological event. Do not just say "this causes neurological symptoms" — say WHICH symptoms, caused by WHAT biological mechanism, in WHICH part of the nervous system, and WHY that part specifically. Every symptom must be traceable to a biological cause.
+
+SPATIAL UNDERSTANDING: Where relevant, tell the student WHERE in the body, which ORGAN, which PART of that organ, which CELL TYPE, which PART of that cell, and in which DIRECTION things flow or fail.
+
+Minimum length: 8 sentences. Write like you are teaching a brilliant student who needs to be able to EXPLAIN this to their professor — not just recognise it on a multiple choice exam.
+
+Return ONLY a valid JSON array. No markdown, no backticks, no extra text:
+[{
+  "question": "Full clinical story with real numbers OR focused easy question",
+  "answer": "Name of diagnosis or answer\nKey recognisable features\nMnemonic written out in full",
+  "mechanism": "Step 1 (What is this normally) → Step 2 (What breaks) → Step 3 (What accumulates and why it matters) → Step 4 (Organ damage) → Step 5 (Every symptom explained). Minimum 8 sentences. Plain language throughout. No unexplained jargon.",
+  "topic": "System — Specific Subtopic",
+  "system": "Biochemistry|Cardiovascular|Respiratory|Renal|Neurology|Pharmacology|Microbiology|Immunology|GI|Endocrine|Hematology|MSK|Reproductive|Psychiatry|Dermatology",
+  "difficulty": "easy|medium|hard",
+  "exam": "${exam}",
+  "buzzwords": "3-6 key recognisable terms for this condition"
+}]`;
 }
 
 // ══ API CALL ══
