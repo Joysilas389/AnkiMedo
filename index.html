@@ -331,6 +331,47 @@ button{font-family:var(--fb)}
             <span class="ft-tag">📄 PDF</span><span class="ft-tag">📝 DOCX</span><span class="ft-tag">🖼️ JPG/PNG</span><span class="ft-tag">📸 Screenshots</span>
           </div>
         </div>
+        <!-- OR divider -->
+        <div style="display:flex;align-items:center;gap:.875rem;margin:.875rem 0">
+          <div style="flex:1;height:1px;background:var(--bdr)"></div>
+          <span style="font-size:.75rem;color:var(--mut);font-weight:500">OR</span>
+          <div style="flex:1;height:1px;background:var(--bdr)"></div>
+        </div>
+
+        <!-- Text paste area -->
+        <div id="paste-toggle-row" style="display:flex;align-items:center;justify-content:center">
+          <button onclick="togPasteBox()" style="background:none;border:1px solid var(--bdr);color:var(--mut);border-radius:10px;padding:.55rem 1.25rem;font-family:var(--fb);font-size:.84rem;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s" id="paste-toggle-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Paste text instead
+          </button>
+        </div>
+
+        <!-- Text paste box (hidden by default) -->
+        <div id="paste-box" style="display:none;margin-top:.75rem">
+          <div style="position:relative">
+            <textarea id="paste-ta" placeholder="Paste any medical text here — lecture notes, textbook paragraphs, study guides, research abstracts, anything. AnkiMedo will read it and generate deep flashcards from it.&#10;&#10;Tip: the more context you paste, the better the cards." style="width:100%;min-height:180px;background:var(--sur);border:1px solid var(--bdr);border-radius:14px;padding:1rem;color:var(--txt);font-family:var(--fb);font-size:.875rem;line-height:1.65;outline:none;resize:vertical;transition:border-color .2s" onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.625rem;flex-wrap:wrap;gap:.5rem">
+              <div style="font-size:.75rem;color:var(--mut)" id="paste-char-count">0 characters</div>
+              <div style="display:flex;gap:.5rem">
+                <button onclick="clearPaste()" class="btn-o" style="padding:.45rem .875rem;font-size:.8rem">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                  Clear
+                </button>
+                <button onclick="handlePaste()" class="btn-p" id="paste-btn" style="padding:.45rem 1.125rem;font-size:.8rem">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  Generate Flashcards
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deck name input for pasted text -->
+          <div style="margin-top:.625rem;display:flex;align-items:center;gap:.625rem">
+            <label style="font-size:.76rem;color:var(--mut);white-space:nowrap;font-weight:500">Deck name:</label>
+            <input type="text" id="paste-deck-name" placeholder="e.g. Renal Physiology — Week 3 Notes" style="flex:1;background:var(--sur);border:1px solid var(--bdr);color:var(--txt);border-radius:8px;padding:.45rem .75rem;font-family:var(--fb);font-size:.82rem;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--bdr)'"/>
+          </div>
+        </div>
+
         <div class="xpills">
           <button class="xpill on" onclick="selX(this,'USMLE Step 1')">USMLE Step 1</button>
           <button class="xpill" onclick="selX(this,'USMLE Step 2CK')">USMLE Step 2CK</button>
@@ -1468,6 +1509,123 @@ async function refreshNow() {
   toast('Starting manual refresh of all decks…', 'i');
   G.decks.forEach(d => { if(d.cards.length && d.autoRefresh !== false) d.lastRefresh = null; });
   await runAutoRefresh();
+}
+
+// ══ TEXT PASTE ══
+let _pasteOpen = false;
+
+function togPasteBox(){
+  _pasteOpen = !_pasteOpen;
+  const box = document.getElementById('paste-box');
+  const btn = document.getElementById('paste-toggle-btn');
+  if(_pasteOpen){
+    box.style.display = 'block';
+    btn.style.borderColor = 'var(--acc)';
+    btn.style.color = 'var(--acc)';
+    document.getElementById('paste-ta').focus();
+  } else {
+    box.style.display = 'none';
+    btn.style.borderColor = 'var(--bdr)';
+    btn.style.color = 'var(--mut)';
+  }
+}
+
+function clearPaste(){
+  document.getElementById('paste-ta').value = '';
+  document.getElementById('paste-char-count').textContent = '0 characters';
+  document.getElementById('paste-deck-name').value = '';
+}
+
+// Live character count
+document.addEventListener('DOMContentLoaded', () => {
+  const ta = document.getElementById('paste-ta');
+  if(ta){
+    ta.addEventListener('input', () => {
+      const n = ta.value.length;
+      const words = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0;
+      document.getElementById('paste-char-count').textContent =
+        n.toLocaleString() + ' characters · ' + words.toLocaleString() + ' words';
+    });
+  }
+});
+
+async function handlePaste(){
+  if(!G.apiKey){ toast('Set API key in Settings first','e'); nav('settings'); return; }
+  const text = document.getElementById('paste-ta').value.trim();
+  if(!text){ toast('Paste some text first','e'); return; }
+  if(text.length < 50){ toast('Text too short — paste at least a paragraph','e'); return; }
+
+  // Auto-generate deck name from first line if not specified
+  let deckName = document.getElementById('paste-deck-name').value.trim();
+  if(!deckName){
+    // Use first sentence or first 40 chars as name
+    deckName = text.split(/[.
+]/)[0].trim().slice(0, 50) || 'Pasted Notes';
+    if(deckName.length === 50) deckName += '…';
+  }
+
+  const exam = G.se || 'USMLE Step 1';
+  showProc();
+
+  try{
+    // Split into chunks if very long
+    const CHUNK = 40000;
+    const chunks = chk(text, CHUNK);
+    const all = [];
+
+    for(let i = 0; i < chunks.length; i++){
+      setStep(i < 2 ? 3 : 4);
+      const el = document.getElementById('ps3');
+      if(el && el.lastChild) el.lastChild.textContent = chunks.length > 1 ? ' Part ' + (i+1) + '/' + chunks.length : ' Analysing text';
+
+      const n = Math.min(G.cpc || 4, 6);
+      const dl = G.dlv || 'detailed';
+      const dmap = {
+        concise: 'Concise answers.',
+        detailed: 'Thorough answers with detailed mechanisms.',
+        deep: 'Comprehensive from first principles — every step from molecular biology to bedside finding.'
+      };
+
+      try{
+        const cards = await callAPI([{role:'user', content:
+          mkPrompt(deckName, exam, n, dmap[dl], G.foc ? 'PRIORITY FOCUS: ' + G.foc : '', false)
+          + '
+
+TEXT TO CONVERT INTO FLASHCARDS:
+' + chunks[i]
+        }]);
+        all.push(...cards);
+      } catch(e){
+        toast('Part ' + (i+1) + ' error: ' + e.message, 'e');
+      }
+
+      if(i < chunks.length - 1) await wait(2000);
+    }
+
+    setStep(5);
+    if(!all.length){ hideProc(); toast('No cards generated — try pasting more detailed text','e'); return; }
+
+    G.decks.push({
+      id: '' + Date.now(),
+      name: deckName,
+      exam,
+      createdAt: new Date().toISOString(),
+      cards: all,
+      source: 'paste'
+    });
+
+    save(); hideProc(); clearPaste();
+    // Close paste box
+    _pasteOpen = true; togPasteBox();
+
+    toast('✅ ' + all.length + ' flashcards from pasted text', 's');
+    rdDecks(); rdBrowse(); updBadge(); nav('library');
+
+  } catch(err){
+    hideProc();
+    toast('Error: ' + err.message, 'e');
+    console.error(err);
+  }
 }
 
 // ══ BOOT ══
