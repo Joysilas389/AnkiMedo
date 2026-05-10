@@ -241,6 +241,17 @@ button{font-family:var(--fb)}
 .qopt.wrong{border-color:var(--red)!important;background:rgba(239,68,68,.12)!important;color:var(--red)!important}
 .qopt.show-c{border-color:var(--grn)!important;background:rgba(16,185,129,.06)!important}
 
+/* ══ TOGGLE SWITCH ══ */
+.tog-wrap{display:flex;align-items:center;justify-content:space-between;padding:.7rem .9rem;background:var(--sur2);border-radius:10px;border:1px solid var(--bdr);margin-bottom:.5rem}
+.tog-label{font-size:.84rem;font-weight:500;color:var(--txt)}
+.tog-sub{font-size:.72rem;color:var(--mut);margin-top:1px}
+.tog{width:44px;height:24px;border-radius:100px;border:none;cursor:pointer;transition:background .25s;position:relative;flex-shrink:0;padding:0}
+.tog.on{background:var(--acc)}
+.tog.off{background:var(--bdr2)}
+.tog-knob{width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:3px;transition:left .25s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.tog.on .tog-knob{left:23px}
+.tog.off .tog-knob{left:3px}
+
 /* ══ TOAST ══ */
 #toasts{position:fixed;bottom:1.25rem;right:1.25rem;z-index:999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
 .ti{background:var(--sur2);border:1px solid var(--bdr2);border-radius:9px;padding:.625rem .875rem;font-size:.82rem;display:flex;align-items:center;gap:7px;animation:tup .25s ease;min-width:220px;max-width:320px;pointer-events:all}
@@ -443,6 +454,21 @@ button{font-family:var(--fb)}
         </div>
       </div>
       <div class="stng">
+        <h5><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>Auto-Refresh</h5>
+        <p style="font-size:.79rem;color:var(--mut);margin-bottom:.875rem">Every 6 hours AnkiMedo generates brand new questions on the same topics from completely different angles. You can never memorise the question — you have to truly understand the concept.</p>
+        <div class="tog-wrap">
+          <div>
+            <div class="tog-label">Global Auto-Refresh</div>
+            <div class="tog-sub">Master switch — turns refresh on/off for all decks</div>
+          </div>
+          <button class="tog off" id="tog-global" onclick="togGlobal()"><div class="tog-knob"></div></button>
+        </div>
+        <div style="font-size:.78rem;color:var(--mut);margin-top:.5rem;display:flex;align-items:center;gap:6px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span id="ar-next-txt">—</span>
+        </div>
+      </div>
+      <div class="stng">
         <h5><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Data Management</h5>
         <p style="font-size:.79rem;color:var(--mut);margin-bottom:.75rem">All data stored locally in your browser.</p>
         <div class="d-flex gap-2 flex-wrap">
@@ -561,7 +587,7 @@ async function init(){
   document.getElementById('dlvl').value=G.dlv||'detailed';
   document.getElementById('foc').value=G.foc||'';
   if(localStorage.getItem('am_theme')==='light'){document.body.classList.add('light');setSunIco();}
-  updDot();rdDecks();rdBrowse();rdDue();rdStats();updBadge();setupDrop();
+  updDot();rdDecks();rdBrowse();rdDue();rdStats();updBadge();setupDrop();updRefreshUI();
 }
 function save(){const{apiKey:_,...s}=G;localStorage.setItem('am_d',JSON.stringify(s));}
 function showEnc(){const b=document.getElementById('enc-badge');if(b)b.style.display='inline-flex';}
@@ -939,6 +965,31 @@ function rdDecks(){
       +'<div class="d-flex gap-2 mt-3">'
       +'<button class="btn-p" style="flex:1" onclick="event.stopPropagation();startStudy(\'deck\',\''+d.id+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>Study</button>'
       +'<button class="btn-d" onclick="event.stopPropagation();delDeck(\''+d.id+'\')" title="Delete deck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>'
+      +'</div>'
+      +'<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--bdr)">'
+      // Per-deck master toggle
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">'
+      +'<div><div style="font-size:.75rem;font-weight:500;color:var(--txt)">🔄 Auto-refresh</div>'
+      +'<div style="font-size:.68rem;color:var(--mut)">'+(d.autoRefresh!==false?'ON — new cards every 6h':'OFF — no new cards')+'</div></div>'
+      +'<button class="tog '+(d.autoRefresh!==false?'on':'off')+'" onclick="event.stopPropagation();togDeckRefresh(\''+d.id+'\')"><div class="tog-knob"></div></button>'
+      +'</div>'
+      // Per-topic toggles (only show when deck refresh is ON)
+      +(d.autoRefresh!==false?(()=>{
+        const topics=[...new Set(d.cards.map(c=>c.topic||c.system).filter(Boolean))];
+        const paused=d.pausedTopics||[];
+        if(!topics.length) return '';
+        return '<div style="margin-top:.375rem">'
+          +'<div style="font-size:.68rem;color:var(--mut);margin-bottom:.375rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Topics</div>'
+          +topics.map(t=>{
+            const isOn=!paused.includes(t);
+            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0">'
+              +'<span style="font-size:.73rem;color:var(--mut)">'+xe(t)+'</span>'
+              +'<button class="tog '+(isOn?'on':'off')+'" style="width:36px;height:20px" onclick="event.stopPropagation();togTopicRefresh(\''+d.id+'\',\''+t+'\')">'
+              +'<div class="tog-knob" style="width:14px;height:14px;top:3px"></div></button>'
+              +'</div>';
+          }).join('')
+          +'</div>';
+      })():'')
       +'</div></div>';
   }).join('');
 }
@@ -1227,15 +1278,74 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape')closeStudy();
 });
 
-// ══ AUTO REFRESH — Generate new cards every 6 hours ══
-const REFRESH_MS = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+// ══ AUTO REFRESH ══
+const REFRESH_MS = 6 * 60 * 60 * 1000;
+
+// ── Toggle helpers ──
+function togGlobal(){
+  G.globalRefresh = G.globalRefresh === false ? true : false;
+  save();
+  updRefreshUI();
+  toast(G.globalRefresh!==false ? '🔄 Auto-refresh enabled globally' : '⏸ Auto-refresh paused globally', 'i');
+}
+
+function togDeckRefresh(id){
+  const d = G.decks.find(x=>x.id===id);
+  if(!d) return;
+  d.autoRefresh = d.autoRefresh === false ? true : false;
+  save();
+  rdDecks();
+  toast('"'+d.name+'" auto-refresh '+(d.autoRefresh!==false?'enabled':'disabled'), 'i');
+}
+
+function togTopicRefresh(deckId, topic){
+  const d = G.decks.find(x=>x.id===deckId);
+  if(!d) return;
+  if(!d.pausedTopics) d.pausedTopics = [];
+  const idx = d.pausedTopics.indexOf(topic);
+  if(idx === -1){
+    d.pausedTopics.push(topic);
+    toast('"'+topic+'" paused', 'i');
+  } else {
+    d.pausedTopics.splice(idx, 1);
+    toast('"'+topic+'" resumed', 's');
+  }
+  save();
+  rdDecks();
+}
+
+function updRefreshUI(){
+  // Global toggle button
+  const btn = document.getElementById('tog-global');
+  if(btn){
+    const on = G.globalRefresh !== false;
+    btn.className = 'tog ' + (on ? 'on' : 'off');
+  }
+  // Next refresh time
+  const txt = document.getElementById('ar-next-txt');
+  if(txt){
+    if(G.globalRefresh === false){
+      txt.textContent = 'Auto-refresh is globally paused';
+    } else {
+      txt.textContent = getRefreshStatus();
+    }
+  }
+}
+
+// ── Core refresh logic ──
+const REFRESH_MS_DEF = 6 * 60 * 60 * 1000;
 
 async function autoRefreshDeck(deck) {
   if(!G.apiKey) return;
   if(!deck.cards.length) return;
+  // Respect per-deck toggle (default is ON)
+  if(deck.autoRefresh === false) return;
 
-  // Extract the unique topics and systems from existing cards
-  const topics = [...new Set(deck.cards.map(c => c.topic || c.system).filter(Boolean))];
+  // Extract topics — filter out any that are paused for this deck
+  const paused = deck.pausedTopics || [];
+  const allTopics = [...new Set(deck.cards.map(c => c.topic || c.system).filter(Boolean))];
+  const topics = allTopics.filter(t => !paused.includes(t));
+  if(!topics.length) return; // All topics paused
   const systems = [...new Set(deck.cards.map(c => c.system).filter(Boolean))];
   const exam = deck.exam || 'USMLE Step 1';
   const n = Math.min(G.cpc || 4, 6);
@@ -1294,6 +1404,11 @@ Return ONLY valid JSON array, no markdown, no backticks:
 }
 
 async function runAutoRefresh() {
+  // Respect global toggle (default is ON)
+  if(G.globalRefresh === false) {
+    setTimeout(runAutoRefresh, 30 * 60 * 1000);
+    return;
+  }
   if(!G.apiKey) return;
   const now = Date.now();
   let totalNew = 0;
@@ -1349,9 +1464,9 @@ function getRefreshStatus() {
 async function refreshNow() {
   if(!G.apiKey) { toast('Set API key in Settings first', 'e'); return; }
   if(!G.decks.length) { toast('No decks to refresh', 'i'); return; }
+  if(G.globalRefresh === false) { toast('Enable auto-refresh in Settings first', 'i'); return; }
   toast('Starting manual refresh of all decks…', 'i');
-  // Reset lastRefresh so all decks are treated as due
-  G.decks.forEach(d => { if(d.cards.length) d.lastRefresh = null; });
+  G.decks.forEach(d => { if(d.cards.length && d.autoRefresh !== false) d.lastRefresh = null; });
   await runAutoRefresh();
 }
 
