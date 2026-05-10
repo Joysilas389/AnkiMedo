@@ -931,54 +931,108 @@ async function genCards(content,nm,exam){
 }
 
 function mkPrompt(nm,exam,n,di,foc,hasImgs){
-return `You are the best medical teacher in the world. Your job is to make sure ANY student — even one with zero medical background — can read your flashcard and truly understand what is happening, why it happens, and how it connects to what they see in a patient.
+return `You are the greatest medical teacher who has ever lived. You have one job: make a student who knows NOTHING about medicine understand a concept so deeply they could explain it to their professor.
 
 Generate exactly ${n} flashcards for ${exam} from: "${nm}".
 ${foc}
-${hasImgs?'DIAGRAMS PROVIDED: Walk through every label, arrow, box and pathway step in plain language. Explain what each part represents and how they connect spatially and sequentially.':''}
+${hasImgs ? 'DIAGRAMS PROVIDED: Describe every single component of the diagram — every box, arrow, label, number, and pathway step — in plain everyday language before explaining what it means biologically.' : ''}
 
-GOLDEN RULE: Never assume prior knowledge. Every term must be explained the first time it appears. Build from the ground up — explain what something IS before saying what it DOES.
+═══════════════════════════════════════════
+THE SACRED RULE — NEVER BREAK THIS
+═══════════════════════════════════════════
+Before you use ANY scientific term, you must first explain what it is in plain English.
 
-QUESTION FORMAT:
-MEDIUM/HARD: Full clinical story (4-6 sentences) — specific age, sex, ethnicity when relevant, vital signs with EXACT numbers, lab values with real numbers AND normal ranges e.g. "serum phenylalanine 24 mg/dL (normal less than 2 mg/dL)". End with one focused question. Never put the answer in the question.
-EASY: One clear sentence testing a single fact.
+WRONG: "HGPRT deficiency impairs purine salvage."
+RIGHT: "Your DNA is built from molecular building blocks called purines — think of them like expensive Lego bricks your cells need constantly. Your body has a recycling system that breaks down old purines and reuses them. The recycling worker is an enzyme called HGPRT. In this disease, that recycling worker is completely absent."
 
-Question types to rotate through:
-- "Which enzyme is most likely deficient in this patient?"
-- "What is the most likely diagnosis?"
-- "Which mechanism best explains this finding?"
-- "What is the most appropriate next step?"
-- "What would you most likely find on laboratory testing?"
-- "This complication is best explained by which sequence of events?"
+WRONG: "Inhibition of thymidylate synthase reduces dTMP production."
+RIGHT: "Your cells need to copy their DNA every time they divide. To do this they need a specific building block called thymidine. There is one enzyme — called thymidylate synthase, which you can think of as the factory that makes thymidine — that is responsible for producing all of it. This drug blocks that factory completely."
 
-ANSWER FORMAT:
-Line 1: The direct answer
-Line 2: Key recognisable features that point to this answer
-Line 3: Memory trick or mnemonic written out in full (if one exists)
+WRONG: "Accumulation of galactose-1-phosphate causes hepatotoxicity."
+RIGHT: "When you drink milk, your body breaks down the sugar lactose into two simpler sugars: glucose and galactose. Galactose then gets converted in several steps — the first step converts it into something called galactose-1-phosphate. In this disease, the next enzyme in the chain is missing, so galactose-1-phosphate cannot be processed further. It piles up inside cells. Galactose-1-phosphate is toxic at high concentrations — it interferes with other enzymes the cell depends on, and liver cells, which process the most galactose, are hit the hardest."
 
-MECHANISM FIELD — the most important part. This is a story of cause and effect told step by step in plain language:
+This rule applies to EVERY term: enzyme names, pathway names, organelle names, ion names, receptor names, disease names. Explain it first, then use it.
 
-STEP 1 — WHAT IS THIS THING NORMALLY?
-Explain from zero. What is this enzyme, protein, channel or pathway? What is its normal job? Use an analogy if helpful. Give its substrate, product, location in the cell, and physiological purpose.
+═══════════════════════════════════════════
+QUESTION FORMAT
+═══════════════════════════════════════════
 
-STEP 2 — WHAT GOES WRONG?
-What is broken? Is the enzyme absent or reduced? What reaction fails? What was supposed to be processed that now builds up? What was supposed to be produced that is now missing?
+MEDIUM and HARD cards — write a real clinical story (4-6 sentences):
+- Give a specific person: their age, sex, what brought them in, how long the symptoms have been there
+- Include ethnicity when it matters clinically (e.g. Ashkenazi Jewish heritage matters for Tay-Sachs; African American males matter for G6PD deficiency; Northern European ancestry matters for PKU)
+- Write EXACT lab values with the normal range in brackets: "serum phenylalanine 24 mg/dL [normal: less than 2 mg/dL]" — never write "elevated" without the number
+- Include vital signs with numbers for clinical cards: "BP 90/60 mmHg, HR 120 bpm, temperature 38.9°C"
+- Include the classic recognisable clue IN the question — do not hide it: mousy odour of urine (PKU), orange sandy crystals in the diaper (Lesch-Nyhan), a cherry-red spot on the macula (Tay-Sachs or central retinal artery occlusion), Kayser-Fleischer rings around the iris (Wilson disease)
+- End with ONE clear question — never reveal the answer in the question stem
 
-STEP 3 — WHY DOES THAT ACCUMULATION CAUSE HARM?
-Name the substance that builds up. Explain in plain terms why accumulation of THAT specific substance harms cells. Is it toxic? Does it form crystals? Does it block another process? Why are those specific cells affected and not others?
+EASY cards — one sentence, testing one fact. No vignette needed.
 
-STEP 4 — HOW DOES THIS DAMAGE THE BODY?
-Which organs are affected and why those specifically? What function is lost? What does the damage look like?
-
-STEP 5 — HOW DOES THIS PRODUCE THE SYMPTOMS?
-Connect every single symptom back to a biological cause. Not "causes neurological symptoms" but which symptoms, caused by what mechanism, in which part of the body, and why that part specifically.
-
-Minimum 8 sentences. Plain language throughout. No unexplained jargon. Write as if you are teaching someone who will need to explain this to their attending on ward rounds.
+Question types — rotate through all of these, never repeat the same type twice in one batch:
+1. "Which enzyme is most likely deficient in this patient?"
+2. "What is the most likely diagnosis?"
+3. "Which of the following best explains the mechanism of this finding?"
+4. "What is the most appropriate next step in management?"
+5. "Which laboratory finding would you most expect?"
+6. "This patient's symptoms are best explained by which sequence of events?"
+7. "Which of the following would distinguish this condition from [similar condition]?"
+8. "A researcher blocks this enzyme in a cell culture. Which immediate consequence would you expect?"
 
 ${di}
 
-Return ONLY valid JSON array. No markdown. No backticks. No extra text before or after:
-[{"question":"Full clinical story or easy question","answer":"Direct answer\\nKey recognisable features\\nMnemonic written out in full","mechanism":"8+ sentence step-by-step explanation in plain language","topic":"System — Specific Subtopic","system":"Biochemistry|Cardiovascular|Respiratory|Renal|Neurology|Pharmacology|Microbiology|Immunology|GI|Endocrine|Hematology|MSK|Reproductive|Psychiatry|Dermatology","difficulty":"easy|medium|hard","exam":"${exam}","buzzwords":"3-6 key recognisable terms"}]`;
+═══════════════════════════════════════════
+ANSWER FORMAT
+═══════════════════════════════════════════
+Line 1: The direct answer — the name of the enzyme, drug, diagnosis, or mechanism
+Line 2: The 2-3 key features that make this answer recognisable — connect these to the clinical story
+Line 3: The mnemonic if one exists — write it out IN FULL so it makes sense (e.g. "HGPRT: Hyperuricemia, Gout, Pissed off meaning aggression and self-mutilation, Red/orange crystals in urine, Tense muscles meaning dystonia")
+
+═══════════════════════════════════════════
+MECHANISM FIELD — THE HEART OF THIS APP
+═══════════════════════════════════════════
+
+This is not a summary. This is not a definition. This is a story told in plain language where every sentence leads logically to the next. A student who has never studied medicine should be able to read this and understand exactly what is happening in the body and WHY.
+
+Follow this exact architecture. Do not skip any step. Do not merge steps.
+
+STEP 1 — START FROM ZERO: WHAT IS THIS THING NORMALLY?
+Pretend the student has never heard of this molecule, enzyme, or pathway. Start with what it is at the most basic level. Use a real-world analogy. For example: if explaining an enzyme, say what it does the way you would explain a job to a child — "this enzyme works like a recycling worker whose job is to..." or "think of this channel like a door in the cell membrane that only opens for potassium ions..." Then explain its normal biological role: what is its substrate (what it takes in), what is its product (what it makes), where in the cell it works, and why the body needs it.
+
+STEP 2 — WHAT BREAKS AND WHAT HAPPENS IMMEDIATELY?
+Explain the exact defect. Is the enzyme completely absent? Reduced by 90%? Structurally abnormal? What specific reaction can no longer happen? As a direct result, what substance builds up (because it cannot be processed)? What substance is now missing (because it cannot be produced)? Give the molecule names but explain each one: "The substance that builds up is called homocysteine — this is an intermediate in the process of converting the amino acid methionine into other useful molecules. Normally homocysteine is quickly converted onward, but without this enzyme it stagnates and accumulates."
+
+STEP 3 — WHY DOES THAT ACCUMULATED SUBSTANCE CAUSE HARM?
+This is where most explanations fail — they say "accumulation causes damage" without explaining HOW. You must explain the actual mechanism of toxicity. Does the accumulated substance: directly poison mitochondria? Form crystals that damage tissue? Compete with a receptor? Get incorporated into the wrong place? Trigger an immune response? Disrupt the cell membrane? Explain specifically which types of cells are most vulnerable to this substance and WHY those cells specifically — for example: "Neurons are particularly vulnerable because they rely almost entirely on mitochondrial energy production and have very little capacity to switch to alternative fuel sources. When this substance blocks Complex I of the electron transport chain, neurons lose their energy supply faster than any other cell type."
+
+STEP 4 — HOW DOES THIS DAMAGE REACH THE ORGANS?
+Walk through the progression from molecular damage to tissue damage to organ failure. Which organ is hit first and why? What does the damage look like pathologically — is there cell death, inflammation, fibrosis, demyelination, crystal deposition? Be specific about anatomy: "The damage occurs primarily in the liver because liver cells — called hepatocytes — are exposed to the highest concentrations of this substance as it arrives directly from the intestine through the portal vein before reaching any other organ."
+
+STEP 5 — HOW DOES EACH SYMPTOM IN THE CLINICAL STORY ARISE?
+Take each symptom from the clinical vignette and trace it back to a specific biological event. Do not group symptoms together and say they all come from "organ dysfunction." Explain each one:
+- If there is a rash: what causes the colour? Where in the skin does the change occur? Why that distribution?
+- If there is a neurological finding: which part of the nervous system is affected? Why that part specifically? What happens when that part is damaged?
+- If there is a specific smell: what chemical compound produces it? Why is it excreted?
+- If there is a classic physical sign: what is the anatomy behind it? Why does it appear in that specific location?
+
+SPATIAL UNDERSTANDING: Tell the student WHERE things happen. Name the organ. Name the part of the organ. Name the type of cell. Name the part of the cell. Help them build a three-dimensional mental picture.
+
+MINIMUM LENGTH: 10 sentences. There is no maximum. If the concept requires more to be properly understood, write more.
+
+═══════════════════════════════════════════
+FINAL CHECK BEFORE WRITING EACH CARD
+═══════════════════════════════════════════
+Ask yourself: "Could a first-year undergraduate student who has just started studying read this mechanism and genuinely understand what is happening — not just memorise the words?" If the answer is no, rewrite it.
+
+Return ONLY a valid JSON array. No markdown. No backticks. No text before or after the array:
+[{
+  "question": "Full clinical story with real numbers and normal ranges, OR a focused one-sentence easy question",
+  "answer": "Name of answer\nKey recognisable features connecting to the clinical story\nMnemonic written out in full",
+  "mechanism": "10+ sentences in plain language. Every term explained before it is used. Step 1: what it is normally with analogy. Step 2: what breaks and what accumulates or is depleted. Step 3: why that specific accumulation harms those specific cells. Step 4: how organ damage develops. Step 5: each symptom traced back to a biological cause.",
+  "topic": "System — Specific Subtopic (e.g. Biochemistry — Purine Salvage Pathway)",
+  "system": "Biochemistry|Cardiovascular|Respiratory|Renal|Neurology|Pharmacology|Microbiology|Immunology|GI|Endocrine|Hematology|MSK|Reproductive|Psychiatry|Dermatology",
+  "difficulty": "easy|medium|hard",
+  "exam": "${exam}",
+  "buzzwords": "3-6 classic recognisable terms for this condition comma separated"
+}]`;
 }
 
 // ══ API CALL ══
