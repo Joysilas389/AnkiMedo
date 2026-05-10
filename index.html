@@ -343,12 +343,23 @@ button{font-family:var(--fb)}
 
     <!-- LIBRARY -->
     <div class="pg" id="p-library">
-      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
         <h4 style="font-family:var(--fh);font-weight:800;margin:0">My Decks</h4>
         <div class="d-flex gap-2">
           <button class="btn-o" onclick="clearEmpty()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Clear Empty</button>
           <button class="btn-p" onclick="nav('home')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Deck</button>
         </div>
+      </div>
+      <!-- Auto-refresh status bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:.625rem .875rem;margin-bottom:1rem">
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+          <span style="font-size:.79rem;color:var(--mut)" id="refresh-status">Auto-refresh: checking…</span>
+        </div>
+        <button class="btn-o" style="padding:3px 10px;font-size:.75rem" onclick="refreshNow()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+          Refresh Now
+        </button>
       </div>
       <div class="cgrid" id="decks-g"></div>
     </div>
@@ -912,6 +923,9 @@ function rdDecks(){
   if(!G.decks.length){g.innerHTML='<div class="empty"><div class="eico">📚</div><h4>No decks yet</h4><p>Upload a file to create your first deck</p></div>';return;}
   const ico={'USMLE Step 1':'🧬','USMLE Step 2CK':'🩺','USMLE Step 3':'🏥','MCCQE1':'🍁'};
   const clr={'USMLE Step 1':'rgba(59,130,246,.15)','USMLE Step 2CK':'rgba(16,185,129,.15)','USMLE Step 3':'rgba(139,92,246,.15)','MCCQE1':'rgba(245,158,11,.15)'};
+  // Update refresh status display
+  const rsEl = document.getElementById('refresh-status');
+  if(rsEl) rsEl.textContent = 'Auto-refresh: ' + getRefreshStatus();
   g.innerHTML=G.decks.map(d=>{
     const due=d.cards.filter(c=>new Date(c.due)<=new Date()).length;
     const mas=d.cards.filter(c=>c.mastery>=3).length;
@@ -919,7 +933,7 @@ function rdDecks(){
     return '<div class="dcard" onclick="openDeck(\''+d.id+'\')">'
       +'<div class="dico" style="background:'+( clr[d.exam]||'rgba(59,130,246,.15)')+'">'+( ico[d.exam]||'📚')+'</div>'
       +'<div class="dnm">'+xe(d.name)+'<button onclick="event.stopPropagation();rnDeck(\''+d.id+'\')" style="background:none;border:none;color:var(--mut);cursor:pointer;padding:2px" title="Rename"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>'
-      +'<div class="dinf">'+d.cards.length+' cards · '+d.exam+' · <strong style="color:var(--gld)">'+due+' due</strong></div>'
+      +'<div class="dinf">'+d.cards.length+' cards · '+d.exam+' · <strong style="color:var(--gld)">'+due+' due</strong></div>'+'<div style="font-size:.68rem;color:var(--mut);margin-top:2px">🔄 '+(d.lastRefresh?'Last refreshed '+new Date(d.lastRefresh).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):'Not yet auto-refreshed')+'</div>'
       +'<div class="dpbar"><div class="dpfil" style="width:'+pct+'%"></div></div>'
       +'<div style="font-size:.69rem;color:var(--mut);margin-top:3px">'+pct+'% mastered</div>'
       +'<div class="d-flex gap-2 mt-3">'
@@ -1213,8 +1227,139 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape')closeStudy();
 });
 
+// ══ AUTO REFRESH — Generate new cards every 6 hours ══
+const REFRESH_MS = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+
+async function autoRefreshDeck(deck) {
+  if(!G.apiKey) return;
+  if(!deck.cards.length) return;
+
+  // Extract the unique topics and systems from existing cards
+  const topics = [...new Set(deck.cards.map(c => c.topic || c.system).filter(Boolean))];
+  const systems = [...new Set(deck.cards.map(c => c.system).filter(Boolean))];
+  const exam = deck.exam || 'USMLE Step 1';
+  const n = Math.min(G.cpc || 4, 6);
+  const dl = G.dlv || 'detailed';
+  const dmap = {
+    concise: 'Concise answers.',
+    detailed: 'Thorough answers with detailed mechanisms.',
+    deep: 'Comprehensive from first principles — every step from molecular biology to bedside finding.'
+  };
+
+  // Build a summary of what concepts are already in the deck
+  // so new cards test the same knowledge from a DIFFERENT angle
+  const existingQuestions = deck.cards.map(c => c.question).join(' | ');
+  const topicSummary = topics.slice(0, 8).join(', ');
+
+  const refreshPrompt = `You are the best medical teacher in the world. Generate exactly ${n} BRAND NEW flashcards for ${exam} on these topics: ${topicSummary}.
+
+CRITICAL: These topics have already been tested with these questions:
+${existingQuestions.slice(0, 2000)}
+
+You MUST write completely different questions — different patient demographics, different clinical scenarios, different angles on the same concepts. A student who memorised the previous questions should NOT recognise these as similar.
+
+Rotate through different question styles:
+- Change the patient: different age, sex, ethnicity, setting (ED vs clinic vs research)
+- Change the scenario: complications, drug interactions, related enzyme in same pathway, differential diagnosis
+- Change the angle: instead of asking the diagnosis, ask the mechanism; instead of the mechanism, ask the expected lab finding; instead of the lab, ask the next step
+- Test second-order consequences: "what ELSE would you expect given this diagnosis?"
+
+${dmap[dl]}
+
+Follow this EXACT explanation structure for the mechanism field:
+Step 1 — What is this thing normally (explain from zero, no assumed knowledge)
+Step 2 — What breaks and what accumulates/is depleted
+Step 3 — Why that specific accumulation damages those specific cells
+Step 4 — How organ damage produces the clinical findings
+Step 5 — Why each symptom occurs — connect every finding back to biology
+
+Minimum 8 sentences in mechanism. Plain language. No unexplained jargon.
+
+Return ONLY valid JSON array, no markdown, no backticks:
+[{"question":"New clinical scenario different from previous","answer":"Answer\nKey features\nMnemonic if applicable","mechanism":"8+ sentence step-by-step explanation from molecular to bedside","topic":"System — Subtopic","system":"${systems[0]||'Biochemistry'}","difficulty":"easy|medium|hard","exam":"${exam}","buzzwords":"key terms"}]`;
+
+  try {
+    const newCards = await callAPI([{role:'user', content: refreshPrompt}]);
+    if(!newCards.length) return;
+
+    // Add new cards to the deck
+    deck.cards.push(...newCards);
+    deck.lastRefresh = new Date().toISOString();
+    save();
+    return newCards.length;
+  } catch(e) {
+    console.error('Auto-refresh failed for deck:', deck.name, e.message);
+    return 0;
+  }
+}
+
+async function runAutoRefresh() {
+  if(!G.apiKey) return;
+  const now = Date.now();
+  let totalNew = 0;
+
+  for(const deck of G.decks) {
+    // Check if this deck is due for refresh
+    const lastRefresh = deck.lastRefresh ? new Date(deck.lastRefresh).getTime() : 0;
+    const timeSince = now - lastRefresh;
+
+    if(timeSince >= REFRESH_MS) {
+      toast('Auto-refreshing "' + deck.name + '"…', 'i');
+      const added = await autoRefreshDeck(deck);
+      if(added) {
+        totalNew += added;
+        // Space out API calls between decks
+        await wait(2000);
+      }
+    }
+  }
+
+  if(totalNew > 0) {
+    rdDecks(); rdBrowse(); rdDue(); rdStats(); updBadge();
+    toast('🔄 Auto-refresh: ' + totalNew + ' new cards generated across your decks', 's');
+  }
+
+  // Schedule next check in 30 minutes (checks every 30min, runs full refresh every 6h)
+  setTimeout(runAutoRefresh, 30 * 60 * 1000);
+}
+
+function getNextRefreshTime() {
+  if(!G.decks.length) return null;
+  let earliest = null;
+  for(const deck of G.decks) {
+    if(!deck.cards.length) continue;
+    const last = deck.lastRefresh ? new Date(deck.lastRefresh).getTime() : 0;
+    const next = last + REFRESH_MS;
+    if(!earliest || next < earliest) earliest = next;
+  }
+  return earliest;
+}
+
+function getRefreshStatus() {
+  const next = getNextRefreshTime();
+  if(!next) return 'No decks to refresh';
+  const diff = next - Date.now();
+  if(diff <= 0) return 'Refresh due now';
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return 'Next refresh in ' + (h > 0 ? h + 'h ' : '') + m + 'm';
+}
+
+// Manual trigger — refresh all decks immediately
+async function refreshNow() {
+  if(!G.apiKey) { toast('Set API key in Settings first', 'e'); return; }
+  if(!G.decks.length) { toast('No decks to refresh', 'i'); return; }
+  toast('Starting manual refresh of all decks…', 'i');
+  // Reset lastRefresh so all decks are treated as due
+  G.decks.forEach(d => { if(d.cards.length) d.lastRefresh = null; });
+  await runAutoRefresh();
+}
+
 // ══ BOOT ══
-init().catch(console.error);
+init().then(() => {
+  // Start auto-refresh scheduler after app loads
+  setTimeout(runAutoRefresh, 5000); // First check 5 seconds after load
+}).catch(console.error);
 if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()));
 </script>
 
