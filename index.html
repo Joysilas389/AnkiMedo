@@ -407,6 +407,27 @@ button{font-family:var(--fb)}
         <div style="font-size:.78rem;color:var(--mut);margin-top:.5rem;display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span id="ar-next-txt">—</span></div>
       </div>
       <div class="stng">
+        <h5><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gld)" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Study Modes</h5>
+        <p style="font-size:.79rem;color:var(--mut);margin-bottom:.875rem">Switch how the app behaves depending on where you are in your preparation.</p>
+
+        <div class="tog-row" style="margin-bottom:.5rem">
+          <div>
+            <div class="tog-lbl">⚡ Exam Mode</div>
+            <div class="tog-sub" id="exam-mode-sub">Rapid-fire questions · No mechanism · No tutor · Pure drilling</div>
+          </div>
+          <button class="tog off" id="tog-exam" onclick="togExamMode()"><div class="tog-knob"></div></button>
+        </div>
+        <div id="exam-mode-desc" style="font-size:.78rem;color:var(--mut);padding:.625rem .75rem;background:var(--sur2);border-radius:9px;border:1px solid var(--bdr);margin-bottom:.875rem;display:none">
+          <strong style="color:var(--gld)">Exam Mode is ON.</strong> Study sessions now simulate real exam conditions — answer only, no explanations, no AI tutor, fast pacing. Use this in your final 2–3 weeks. Switch back to normal for deep learning.
+        </div>
+
+        <div style="background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:.75rem .875rem">
+          <div class="tog-lbl" style="margin-bottom:.25rem">📖 Normal Mode <span style="font-size:.7rem;font-weight:400;color:var(--mut)">(default)</span></div>
+          <div style="font-size:.72rem;color:var(--mut)">Full mechanism explanations · AI tutor on Forgot/Hard · Spaced repetition · Deep learning</div>
+        </div>
+      </div>
+
+      <div class="stng">
         <h5><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Data Management</h5>
         <p style="font-size:.79rem;color:var(--mut);margin-bottom:.75rem">All data stored locally in your browser. Export regularly to back up your progress.</p>
         <div class="d-flex gap-2 flex-wrap">
@@ -544,7 +565,7 @@ async function encK(k){const salt=_salt(),key=await _dk(salt),iv=crypto.getRando
 async function decK(){const e=localStorage.getItem(_K),iv=localStorage.getItem(_I);if(!e||!iv)return null;try{const key=await _dk(_salt());const p=await crypto.subtle.decrypt({name:'AES-GCM',iv:Uint8Array.from(atob(iv),c=>c.charCodeAt(0))},key,Uint8Array.from(atob(e),c=>c.charCodeAt(0)));return new TextDecoder().decode(p);}catch{return null;}}
 
 // ══ STATE ══
-let G={apiKey:'',decks:[],af:'all',as:'',af_sys:'',ae:null,ad:null,sq:[],si:0,flip:false,cpc:4,dlv:'detailed',foc:'',se:'USMLE Step 1',globalRefresh:true,qn:10,qdiff:'all'};
+let G={apiKey:'',decks:[],af:'all',as:'',af_sys:'',ae:null,ad:null,sq:[],si:0,flip:false,cpc:4,dlv:'detailed',foc:'',se:'USMLE Step 1',globalRefresh:true,qn:10,qdiff:'all',examMode:false,studyMode:'normal'};
 
 // ══ INIT ══
 async function init(){
@@ -560,7 +581,7 @@ async function init(){
     const n=this.value.length,w=this.value.trim()?this.value.trim().split(/\s+/).length:0;
     document.getElementById('paste-count').textContent=n.toLocaleString()+' characters · '+w.toLocaleString()+' words';
   });
-  updDot();rdDecks();rdBrowse();rdDue();rdStats();updBadge();setupDrop();updARUI();
+  updDot();rdDecks();rdBrowse();rdDue();rdStats();updBadge();setupDrop();updARUI();updExamModeUI();
 }
 function save(){const{apiKey:_,...s}=G;localStorage.setItem('am_d',JSON.stringify(s));}
 
@@ -993,6 +1014,7 @@ function rdDecks(){
       +'<div style="font-size:.69rem;color:var(--mut);margin-top:3px">'+pct+'% mastered</div>'
       +'<div class="d-flex gap-2 mt-3">'
         +'<button class="btn-p" style="flex:1" onclick="event.stopPropagation();startStudy(\'deck\',\''+d.id+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>Study</button>'
+        +(d.cards.filter(x=>(x.mastery||0)<2).length?'<button class="btn-o" style="border-color:rgba(239,68,68,.45);color:var(--red);padding:.55rem .75rem" onclick="event.stopPropagation();startRevision(\''+d.id+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></button>':'')
         +'<button class="btn-d" onclick="event.stopPropagation();delDeck(\''+d.id+'\')" title="Delete"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>'
       +'</div>'
       +'<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--bdr)">'
@@ -1216,7 +1238,14 @@ function startStudy(mode,did){
   G.sq=shuffle([...cards]);G.si=0;document.getElementById('study').classList.add('on');G.flip=false;loadCard();
 }
 function studyOne(id){const c=aC().find(x=>x.id===id);if(!c)return;G.sq=[c];G.si=0;document.getElementById('study').classList.add('on');G.flip=false;loadCard();}
-function closeStudy(){document.getElementById('study').classList.remove('on');save();rdBrowse();rdDue();rdStats();updBadge();}
+function closeStudy(){
+  document.getElementById('study').classList.remove('on');
+  // Remove revision banner if present
+  const rb = document.getElementById('revision-banner');
+  if(rb) rb.remove();
+  G.studyMode = 'normal';
+  save();rdBrowse();rdDue();rdStats();updBadge();
+}
 function loadCard(){
   const c=G.sq[G.si];
   if(!c){closeStudy();toast('🎉 Session complete!','s');return;}
@@ -1225,14 +1254,30 @@ function loadCard(){
   document.getElementById('s-txt').textContent=(G.si+1)+' / '+tot;
   document.getElementById('s-q').textContent=c.question;
   document.getElementById('s-a').textContent=c.answer;
-  document.getElementById('s-mech').innerHTML=c.mechanism?'<strong>⚡ Explanation:</strong> '+xe(c.mechanism):'';
+  document.getElementById('s-mech').innerHTML=(c.mechanism&&!G.examMode)?'<strong>⚡ Explanation:</strong> '+xe(c.mechanism):'';
   document.getElementById('s-buzz').textContent=c.buzzwords?'🏷 '+c.buzzwords:'';
   document.getElementById('s-topic').textContent=c.topic||c.system||'';
   document.getElementById('fcard').classList.remove('flipped');G.flip=false;
   document.getElementById('rrow').style.display='none';document.getElementById('flip-hint').style.display='flex';
   document.getElementById('study').scrollTop=0;
 }
-function flipCard(){if(G.flip)return;G.flip=true;document.getElementById('fcard').classList.add('flipped');document.getElementById('rrow').style.display='flex';document.getElementById('flip-hint').style.display='none';}
+function flipCard(){
+  if(G.flip)return;G.flip=true;
+  document.getElementById('fcard').classList.add('flipped');
+  document.getElementById('rrow').style.display='flex';
+  document.getElementById('flip-hint').style.display='none';
+  // In exam mode, show a subtle mode indicator
+  if(G.examMode){
+    const rrow = document.getElementById('rrow');
+    if(rrow && !document.getElementById('exam-hint')){
+      const h = document.createElement('div');
+      h.id='exam-hint';
+      h.style.cssText='width:100%;text-align:center;font-size:.72rem;color:var(--gld);margin-bottom:.25rem;letter-spacing:.04em';
+      h.textContent='⚡ EXAM MODE — Rate honestly';
+      rrow.insertAdjacentElement('beforebegin', h);
+    }
+  }
+}
 function rate(q){
   const card=G.sq[G.si];if(!card)return;
   for(const d of G.decks){
@@ -1243,8 +1288,8 @@ function rate(q){
     dc.due=new Date(Date.now()+dc.interval*86400000).toISOString();dc.rev=(dc.rev||0)+1;break;
   }
   save();
-  // Trigger AI tutor on Forgot or Hard
-  if(q<3){
+  // Trigger AI tutor on Forgot or Hard (skip in Exam Mode)
+  if(q<3 && !G.examMode){
     triggerTutor(card,q===0?'forgot':'hard');
   } else {
     G.si++;loadCard();
@@ -1630,6 +1675,64 @@ function tutorContinue(){
   _tutorPending = false;
   G.si++;
   loadCard();
+}
+
+// ══ EXAM MODE ══
+function togExamMode(){
+  G.examMode = !G.examMode;
+  save();
+  updExamModeUI();
+  toast(G.examMode ? '⚡ Exam Mode ON — rapid fire, no explanations' : '📖 Back to Normal Mode — deep learning restored', 'i');
+}
+
+function updExamModeUI(){
+  const btn = document.getElementById('tog-exam');
+  const desc = document.getElementById('exam-mode-desc');
+  const sub = document.getElementById('exam-mode-sub');
+  if(btn) btn.className = 'tog ' + (G.examMode ? 'on' : 'off');
+  if(desc) desc.style.display = G.examMode ? 'block' : 'none';
+  if(sub) sub.textContent = G.examMode
+    ? 'ACTIVE — Rapid fire · No explanations · No AI tutor'
+    : 'Rapid-fire questions · No mechanism · No tutor · Pure drilling';
+}
+
+// ══ REVISION MODE ══
+function startRevision(deckId){
+  const deck = G.decks.find(d => d.id === deckId);
+  if(!deck) return;
+
+  // Get weak cards: mastery < 2, sorted worst first
+  const weak = deck.cards
+    .filter(c => (c.mastery||0) < 2)
+    .sort((a,b) => (a.mastery||0) - (b.mastery||0))
+    .map(c => ({...c, di: deck.id, dn: deck.name}));
+
+  if(!weak.length){
+    toast('No weak cards in this deck — all cards mastered!', 's');
+    return;
+  }
+
+  G.studyMode = 'revision';
+  G.sq = weak;
+  G.si = 0;
+
+  // Show revision banner
+  const inner = document.querySelector('.sv-inner');
+  if(inner){
+    const existing = document.getElementById('revision-banner');
+    if(existing) existing.remove();
+    const banner = document.createElement('div');
+    banner.id = 'revision-banner';
+    banner.style.cssText = 'background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.28);border-radius:10px;padding:.625rem .875rem;font-size:.79rem;color:var(--red);margin-bottom:.875rem;display:flex;align-items:center;gap:7px';
+    banner.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>'
+      + '<span><strong>Revision Mode</strong> — ' + weak.length + ' weak card' + (weak.length>1?'s':'') + ' from "' + deck.name + '". Hammer these until they stick.</span>';
+    inner.insertBefore(banner, inner.firstChild);
+  }
+
+  document.getElementById('study').classList.add('on');
+  G.flip = false;
+  loadCard();
+  toast('Revising ' + weak.length + ' weak cards from "' + deck.name + '"', 'i');
 }
 
 // ══ KEYBOARD ══
