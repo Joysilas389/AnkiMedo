@@ -443,6 +443,49 @@ button{font-family:var(--fb)}
       <button class="rbtn rg" onclick="rate(3)">Good</button>
       <button class="rbtn re" onclick="rate(5)">Easy</button>
     </div>
+    <!-- AI TUTOR PANEL -->
+    <div id="tutor-panel" style="display:none;margin-top:1rem">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.875rem">
+        <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--pur),var(--acc));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🧠</div>
+        <div>
+          <div style="font-size:.84rem;font-weight:700;color:var(--txt)">AI Tutor</div>
+          <div style="font-size:.72rem;color:var(--mut)">Building a deeper explanation just for you…</div>
+        </div>
+        <button onclick="closeTutor()" style="margin-left:auto;background:none;border:none;color:var(--mut);cursor:pointer;padding:4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <!-- Loading state -->
+      <div id="tutor-loading" style="text-align:center;padding:1.5rem;background:var(--sur);border:1px solid var(--bdr);border-radius:14px">
+        <div style="width:36px;height:36px;margin:0 auto .75rem;border:3px solid var(--bdr);border-top-color:var(--pur);border-radius:50%;animation:spin .75s linear infinite"></div>
+        <div style="font-size:.82rem;color:var(--mut)" id="tutor-loading-txt">Analysing what tripped you up…</div>
+      </div>
+      <!-- Tutor content -->
+      <div id="tutor-content" style="display:none">
+        <!-- Text explanation -->
+        <div id="tutor-text" style="background:var(--sur);border:1px solid var(--bdr);border-radius:14px;padding:1.125rem;font-size:.875rem;line-height:1.75;color:var(--txt);margin-bottom:.875rem;white-space:pre-wrap"></div>
+        <!-- Interactive visual -->
+        <div id="tutor-visual" style="background:var(--sur);border:1px solid var(--bdr);border-radius:14px;overflow:hidden;margin-bottom:.875rem"></div>
+        <!-- Analogy box -->
+        <div id="tutor-analogy" style="display:none;background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.22);border-radius:12px;padding:1rem;font-size:.84rem;line-height:1.7;color:var(--txt);margin-bottom:.875rem">
+          <div style="font-size:.67rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--pur);margin-bottom:.4rem">💡 Real-World Analogy</div>
+          <div id="tutor-analogy-txt"></div>
+        </div>
+        <!-- Step navigator -->
+        <div id="tutor-steps" style="display:none;margin-bottom:.875rem">
+          <div style="font-size:.67rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--acc2);margin-bottom:.5rem">Step-by-step</div>
+          <div id="tutor-steps-list"></div>
+          <div style="display:flex;gap:.5rem;margin-top:.625rem">
+            <button id="tutor-prev" onclick="tutorStep(-1)" class="btn-o" style="padding:.4rem .875rem;font-size:.79rem">← Prev</button>
+            <button id="tutor-next" onclick="tutorStep(1)" class="btn-p" style="padding:.4rem .875rem;font-size:.79rem">Next →</button>
+            <span id="tutor-step-n" style="margin-left:auto;font-size:.78rem;color:var(--mut);align-self:center"></span>
+          </div>
+        </div>
+        <!-- Continue button -->
+        <button onclick="tutorContinue()" class="btn-p" style="width:100%;justify-content:center;padding:.65rem">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          Got it — continue studying
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 <!-- MODAL BACKGROUND -->
@@ -1191,15 +1234,21 @@ function loadCard(){
 }
 function flipCard(){if(G.flip)return;G.flip=true;document.getElementById('fcard').classList.add('flipped');document.getElementById('rrow').style.display='flex';document.getElementById('flip-hint').style.display='none';}
 function rate(q){
-  const c=G.sq[G.si];if(!c)return;
+  const card=G.sq[G.si];if(!card)return;
   for(const d of G.decks){
-    const i=d.cards.findIndex(x=>x.id===c.id);if(i===-1)continue;
-    const card=d.cards[i];
-    if(q<3){card.interval=1;card.mastery=Math.max(0,(card.mastery||0)-1);}
-    else{const ef=Math.max(1.3,(card.ef||2.5)+0.1-(5-q)*0.08);card.ef=ef;card.interval=card.rev<1?1:card.rev===1?6:Math.round(card.interval*ef);card.mastery=Math.min(5,(card.mastery||0)+(q>=4?2:1));}
-    card.due=new Date(Date.now()+card.interval*86400000).toISOString();card.rev=(card.rev||0)+1;break;
+    const i=d.cards.findIndex(x=>x.id===card.id);if(i===-1)continue;
+    const dc=d.cards[i];
+    if(q<3){dc.interval=1;dc.mastery=Math.max(0,(dc.mastery||0)-1);}
+    else{const ef=Math.max(1.3,(dc.ef||2.5)+0.1-(5-q)*0.08);dc.ef=ef;dc.interval=dc.rev<1?1:dc.rev===1?6:Math.round(dc.interval*ef);dc.mastery=Math.min(5,(dc.mastery||0)+(q>=4?2:1));}
+    dc.due=new Date(Date.now()+dc.interval*86400000).toISOString();dc.rev=(dc.rev||0)+1;break;
   }
-  G.si++;save();loadCard();
+  save();
+  // Trigger AI tutor on Forgot or Hard
+  if(q<3){
+    triggerTutor(card,q===0?'forgot':'hard');
+  } else {
+    G.si++;loadCard();
+  }
 }
 function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
 
@@ -1294,6 +1343,294 @@ function clearAll(){if(!confirm('Delete ALL decks and cards? This cannot be undo
 
 // ══ TOAST ══
 function toast(msg,type='i'){const d=document.createElement('div');d.className='ti '+type;d.innerHTML='<div class="td '+type+'"></div><span>'+msg+'</span>';document.getElementById('toasts').appendChild(d);setTimeout(()=>d.remove(),4500);}
+
+// ══ AI TUTOR ══
+let _tutorCard = null;
+let _tutorSteps = [];
+let _tutorStepIdx = 0;
+let _tutorPending = false;
+
+async function triggerTutor(card, difficulty){
+  if(!G.apiKey){ G.si++; loadCard(); return; }
+  _tutorCard = card;
+  _tutorSteps = [];
+  _tutorStepIdx = 0;
+  _tutorPending = true;
+
+  // Show panel, hide rating row
+  const panel = document.getElementById('tutor-panel');
+  const rrow = document.getElementById('rrow');
+  const loading = document.getElementById('tutor-loading');
+  const content = document.getElementById('tutor-content');
+  const loadingTxt = document.getElementById('tutor-loading-txt');
+
+  panel.style.display = 'block';
+  rrow.style.display = 'none';
+  loading.style.display = 'block';
+  content.style.display = 'none';
+  document.getElementById('study').scrollTo({top: document.getElementById('study').scrollHeight, behavior:'smooth'});
+
+  const msgs = [
+    difficulty === 'forgot'
+      ? 'Analysing what tripped you up…'
+      : 'Finding a clearer way to explain this…',
+    'Building a step-by-step walkthrough…',
+    'Generating the visual…'
+  ];
+  let mi = 0;
+  const ticker = setInterval(()=>{ if(loadingTxt) loadingTxt.textContent = msgs[mi++ % msgs.length]; }, 2200);
+
+  try{
+    const prompt = buildTutorPrompt(card, difficulty);
+    const resp = await callAPI([{role:'user', content: prompt}]);
+    // callAPI returns parsed cards array — for tutor we call raw
+    clearInterval(ticker);
+    // Actually need raw API call for tutor since response isn't card array
+    throw new Error('USE_RAW');
+  }catch(e){
+    clearInterval(ticker);
+    if(e.message !== 'USE_RAW') console.error('Tutor error:', e);
+  }
+
+  // Raw API call for tutor
+  try{
+    const rawResp = await callTutorAPI(card, difficulty);
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    renderTutor(rawResp);
+  }catch(err){
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    document.getElementById('tutor-text').textContent = 'Could not load tutor explanation. ' + err.message;
+    document.getElementById('tutor-visual').style.display = 'none';
+    console.error('Tutor fetch error:', err);
+  }
+}
+
+async function callTutorAPI(card, difficulty){
+  const label = difficulty === 'forgot' ? 'completely forgot' : 'found hard to understand';
+  const exam = card.exam || G.se || 'medical exam';
+
+  const systemPrompt = `You are the world's most gifted medical teacher. A student just said they ${label} understanding this concept. Your job is to build a completely new explanation from scratch — simpler, more concrete, and with a visual animation.
+
+Return ONLY valid JSON, no markdown, no backticks:
+{
+  "explanation": "A plain-language explanation starting from absolute zero. Assume the student knows nothing. Use everyday analogies first, then introduce medical terms. Minimum 8 sentences. Every single technical term must be explained before being used. Build the concept step by step like a story.",
+  "analogy": "One vivid real-world analogy that makes the concept concrete and memorable. Should be something from everyday life — plumbing, traffic, doors, factories, electrical circuits — whatever fits best.",
+  "steps": [
+    {"title": "Step 1 title", "text": "What is happening at this exact step. Plain language. One concept at a time.", "highlight": "The single most important word or phrase at this step"},
+    {"title": "Step 2 title", "text": "...", "highlight": "..."}
+  ],
+  "visual_type": "circuit|pathway|timeline|comparison|cycle|diagram",
+  "visual_data": {
+    "nodes": [{"id": "A", "label": "Label", "sublabel": "explanation", "color": "acc|grn|red|gld|pur"}],
+    "edges": [{"from": "A", "to": "B", "label": "what flows", "animated": true}],
+    "title": "Visual title"
+  }
+}
+
+The steps array must have 3-6 steps. Each step should reveal one new piece of the concept — like a teacher drawing on a whiteboard one element at a time.
+
+The visual_data should represent the core mechanism as a flow diagram. For AVNRT for example: nodes would be SA node, AV node fast pathway, AV node slow pathway, Bundle of His, ventricles. Edges would show the reentrant circuit. For a drug mechanism: nodes would be the drug, the target receptor, the downstream effect. Keep it simple — 3-7 nodes maximum.`;
+
+  const userMsg = `CONCEPT THE STUDENT STRUGGLED WITH:
+Question: ${card.question}
+Answer: ${card.answer}
+Mechanism from card: ${card.mechanism || 'Not provided'}
+Exam: ${exam}
+Topic: ${card.topic || card.system || 'General'}
+
+The student pressed "${difficulty === 'forgot' ? 'Forgot' : 'Hard'}". They could not confidently picture this concept. Build them a new explanation from the ground up.`;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), 90000);
+  const r = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':G.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    signal: ctrl.signal,
+    body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:systemPrompt,messages:[{role:'user',content:userMsg}]})
+  });
+  clearTimeout(timer);
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+r.status);}
+  const d = await r.json();
+  const txt = d.content.filter(x=>x.type==='text').map(x=>x.text).join('');
+  return JSON.parse(txt.replace(/```json|```/g,'').trim());
+}
+
+function renderTutor(data){
+  // Explanation text
+  const textEl = document.getElementById('tutor-text');
+  if(textEl) textEl.textContent = data.explanation || '';
+
+  // Analogy
+  const analogyEl = document.getElementById('tutor-analogy');
+  const analogyTxt = document.getElementById('tutor-analogy-txt');
+  if(data.analogy && analogyEl && analogyTxt){
+    analogyTxt.textContent = data.analogy;
+    analogyEl.style.display = 'block';
+  }
+
+  // Steps
+  _tutorSteps = data.steps || [];
+  _tutorStepIdx = 0;
+  const stepsEl = document.getElementById('tutor-steps');
+  if(_tutorSteps.length > 0 && stepsEl){
+    stepsEl.style.display = 'block';
+    renderTutorStep();
+  }
+
+  // Visual
+  if(data.visual_data){
+    renderTutorVisual(data.visual_data, data.visual_type || 'pathway');
+  } else {
+    const vEl = document.getElementById('tutor-visual');
+    if(vEl) vEl.style.display = 'none';
+  }
+}
+
+function renderTutorStep(){
+  const list = document.getElementById('tutor-steps-list');
+  const prev = document.getElementById('tutor-prev');
+  const next = document.getElementById('tutor-next');
+  const stepN = document.getElementById('tutor-step-n');
+  if(!list||!_tutorSteps.length) return;
+
+  const step = _tutorSteps[_tutorStepIdx];
+  list.innerHTML = '<div style="background:rgba(59,130,246,.07);border:1px solid var(--bdr);border-left:3px solid var(--acc);border-radius:0 10px 10px 0;padding:.875rem">'
+    + '<div style="font-size:.78rem;font-weight:700;color:var(--acc);margin-bottom:.375rem">' + xe(step.title) + '</div>'
+    + '<div style="font-size:.875rem;line-height:1.7;color:var(--txt)">' + xe(step.text).replace(xe(step.highlight||'XXXXXX'), '<strong style="color:var(--gld)">'+xe(step.highlight)+'</strong>') + '</div>'
+    + (step.highlight ? '<div style="margin-top:.5rem;font-size:.75rem;color:var(--gld);font-weight:600">Key concept: ' + xe(step.highlight) + '</div>' : '')
+    + '</div>';
+
+  if(prev) prev.disabled = _tutorStepIdx === 0;
+  if(next) next.textContent = _tutorStepIdx === _tutorSteps.length-1 ? '✓ Done' : 'Next →';
+  if(stepN) stepN.textContent = 'Step '+(_tutorStepIdx+1)+' of '+_tutorSteps.length;
+}
+
+function tutorStep(dir){
+  const newIdx = _tutorStepIdx + dir;
+  if(newIdx < 0 || newIdx >= _tutorSteps.length) return;
+  _tutorStepIdx = newIdx;
+  renderTutorStep();
+}
+
+function renderTutorVisual(data, type){
+  const vEl = document.getElementById('tutor-visual');
+  if(!vEl) return;
+  vEl.style.display = 'block';
+
+  const nodes = data.nodes || [];
+  const edges = data.edges || [];
+  const title = data.title || '';
+
+  const colorMap = {acc:'#3b82f6',grn:'#10b981',red:'#ef4444',gld:'#f59e0b',pur:'#8b5cf6',acc2:'#06b6d4'};
+  const isDark = !document.body.classList.contains('light');
+  const bgCol = isDark ? '#111827' : '#f8fafc';
+  const txtCol = isDark ? '#f0f4ff' : '#0f172a';
+  const mutCol = isDark ? '#8899bb' : '#64748b';
+  const surCol = isDark ? '#1a2235' : '#ffffff';
+  const bdrCol = isDark ? 'rgba(255,255,255,.09)' : 'rgba(0,0,0,.1)';
+
+  // Build SVG flow diagram
+  const nodeCount = nodes.length;
+  const W = Math.min(vEl.offsetWidth || 340, 500);
+  const nodeW = 120, nodeH = 54, gapX = 48, gapY = 64;
+
+  // Layout: try to fit in rows
+  const cols = nodeCount <= 3 ? nodeCount : Math.ceil(nodeCount / 2);
+  const rows = Math.ceil(nodeCount / cols);
+  const svgW = cols * (nodeW + gapX) + gapX;
+  const svgH = rows * (nodeH + gapY) + gapY + 30;
+
+  // Position nodes
+  const pos = {};
+  nodes.forEach((n, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    pos[n.id] = {
+      x: gapX + col * (nodeW + gapX),
+      y: 40 + row * (nodeH + gapY)
+    };
+  });
+
+  let svg = `<svg viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${svgW}px;display:block">`;
+  svg += `<rect width="${svgW}" height="${svgH}" fill="${bgCol}" rx="14"/>`;
+
+  // Title
+  if(title) svg += `<text x="${svgW/2}" y="22" text-anchor="middle" fill="${mutCol}" font-size="11" font-family="-apple-system,sans-serif" font-weight="600" letter-spacing="0.06em">${xe(title).toUpperCase()}</text>`;
+
+  // Animated edges
+  edges.forEach((e, ei) => {
+    const from = pos[e.from], to = pos[e.to];
+    if(!from||!to) return;
+    const x1 = from.x + nodeW/2, y1 = from.y + nodeH/2;
+    const x2 = to.x + nodeW/2, y2 = to.y + nodeH/2;
+    // Adjust to node edges
+    const dx = x2-x1, dy = y2-y1, dist = Math.sqrt(dx*dx+dy*dy);
+    const ux = dx/dist, uy = dy/dist;
+    const sx = x1 + ux*(nodeW/2+2), sy = y1 + uy*(nodeH/2+2);
+    const ex2 = x2 - ux*(nodeW/2+8), ey2 = y2 - uy*(nodeH/2+8);
+
+    const col = e.color ? (colorMap[e.color]||e.color) : '#3b82f6';
+    const dashId = 'dash'+ei;
+    const glowId = 'glow'+ei;
+
+    if(e.animated){
+      svg += `<defs><filter id="${glowId}"><feGaussianBlur stdDeviation="2" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+      svg += `<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${bdrCol}" stroke-width="2"/>`;
+      svg += `<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${col}" stroke-width="2.5" stroke-dasharray="8 6" filter="url(#${glowId})"><animate attributeName="stroke-dashoffset" values="0;-28" dur="1.2s" repeatCount="indefinite"/></line>`;
+      // Arrowhead
+      svg += `<polygon points="${ex2},${ey2} ${ex2-ux*10+uy*5},${ey2-uy*10-ux*5} ${ex2-ux*10-uy*5},${ey2-uy*10+ux*5}" fill="${col}"/>`;
+    } else {
+      svg += `<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${bdrCol}" stroke-width="2"/>`;
+      svg += `<polygon points="${ex2},${ey2} ${ex2-ux*10+uy*5},${ey2-uy*10-ux*5} ${ex2-ux*10-uy*5},${ey2-uy*10+ux*5}" fill="${mutCol}"/>`;
+    }
+
+    // Edge label
+    if(e.label){
+      const mx = (sx+ex2)/2, my = (sy+ey2)/2;
+      svg += `<rect x="${mx-30}" y="${my-9}" width="60" height="16" fill="${bgCol}" rx="4"/>`;
+      svg += `<text x="${mx}" y="${my+4}" text-anchor="middle" fill="${col}" font-size="9" font-family="-apple-system,sans-serif">${xe(e.label)}</text>`;
+    }
+  });
+
+  // Nodes
+  nodes.forEach((n, i) => {
+    const p = pos[n.id];if(!p) return;
+    const col = colorMap[n.color||'acc'] || '#3b82f6';
+    const delay = i * 0.15;
+    svg += `<g style="opacity:0;animation:fadein 0.4s ease ${delay}s forwards">`;
+    svg += `<rect x="${p.x}" y="${p.y}" width="${nodeW}" height="${nodeH}" fill="${surCol}" stroke="${col}" stroke-width="1.5" rx="10"/>`;
+    svg += `<rect x="${p.x}" y="${p.y}" width="${nodeW}" height="4" fill="${col}" rx="10 10 0 0"/>`;
+    // Label
+    const labelLines = xe(n.label||'').split(' ');
+    const labelY = n.sublabel ? p.y + nodeH/2 - 6 : p.y + nodeH/2 + 5;
+    svg += `<text x="${p.x+nodeW/2}" y="${labelY}" text-anchor="middle" fill="${txtCol}" font-size="12" font-family="-apple-system,sans-serif" font-weight="600">${labelLines.slice(0,2).join(' ')}</text>`;
+    if(n.sublabel) svg += `<text x="${p.x+nodeW/2}" y="${p.y+nodeH/2+12}" text-anchor="middle" fill="${mutCol}" font-size="9" font-family="-apple-system,sans-serif">${xe(n.sublabel).slice(0,24)}</text>`;
+    svg += '</g>';
+  });
+
+  svg += `<style>@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}</style>`;
+  svg += '</svg>';
+
+  vEl.innerHTML = '<div style="padding:.625rem .5rem .25rem">'
+    + '<div style="font-size:.67rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--acc2);margin-bottom:.375rem;padding:0 .25rem">⚡ Visual Pathway</div>'
+    + svg
+    + '</div>';
+}
+
+function closeTutor(){
+  document.getElementById('tutor-panel').style.display = 'none';
+  document.getElementById('rrow').style.display = 'flex';
+  _tutorPending = false;
+}
+
+function tutorContinue(){
+  document.getElementById('tutor-panel').style.display = 'none';
+  _tutorPending = false;
+  G.si++;
+  loadCard();
+}
 
 // ══ KEYBOARD ══
 document.addEventListener('keydown',e=>{
