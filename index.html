@@ -409,21 +409,19 @@ button{font-family:var(--fb)}
       <div class="stng">
         <h5><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gld)" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Study Modes</h5>
         <p style="font-size:.79rem;color:var(--mut);margin-bottom:.875rem">Switch how the app behaves depending on where you are in your preparation.</p>
-
         <div class="tog-row" style="margin-bottom:.5rem">
           <div>
             <div class="tog-lbl">⚡ Exam Mode</div>
-            <div class="tog-sub" id="exam-mode-sub">Rapid-fire questions · No mechanism · No tutor · Pure drilling</div>
+            <div class="tog-sub" id="exam-mode-sub">Rapid-fire · No mechanism · No AI tutor · Pure drilling</div>
           </div>
           <button class="tog off" id="tog-exam" onclick="togExamMode()"><div class="tog-knob"></div></button>
         </div>
         <div id="exam-mode-desc" style="font-size:.78rem;color:var(--mut);padding:.625rem .75rem;background:var(--sur2);border-radius:9px;border:1px solid var(--bdr);margin-bottom:.875rem;display:none">
-          <strong style="color:var(--gld)">Exam Mode is ON.</strong> Study sessions now simulate real exam conditions — answer only, no explanations, no AI tutor, fast pacing. Use this in your final 2–3 weeks. Switch back to normal for deep learning.
+          <strong style="color:var(--gld)">Exam Mode is ON.</strong> Study sessions simulate real exam conditions — answers only, no explanations, no AI tutor. Use in your final 2–3 weeks.
         </div>
-
         <div style="background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:.75rem .875rem">
           <div class="tog-lbl" style="margin-bottom:.25rem">📖 Normal Mode <span style="font-size:.7rem;font-weight:400;color:var(--mut)">(default)</span></div>
-          <div style="font-size:.72rem;color:var(--mut)">Full mechanism explanations · AI tutor on Forgot/Hard · Spaced repetition · Deep learning</div>
+          <div style="font-size:.72rem;color:var(--mut)">Full explanations · AI tutor on Forgot/Hard · Spaced repetition · Deep learning</div>
         </div>
       </div>
 
@@ -464,33 +462,23 @@ button{font-family:var(--fb)}
       <button class="rbtn rg" onclick="rate(3)">Good</button>
       <button class="rbtn re" onclick="rate(5)">Easy</button>
     </div>
-    <!-- AI TUTOR PANEL -->
     <div id="tutor-panel" style="display:none;margin-top:1rem">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:.875rem">
         <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--pur),var(--acc));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🧠</div>
-        <div>
-          <div style="font-size:.84rem;font-weight:700;color:var(--txt)">AI Tutor</div>
-          <div style="font-size:.72rem;color:var(--mut)">Building a deeper explanation just for you…</div>
-        </div>
+        <div><div style="font-size:.84rem;font-weight:700;color:var(--txt)">AI Tutor</div><div style="font-size:.72rem;color:var(--mut)">Building a deeper explanation just for you…</div></div>
         <button onclick="closeTutor()" style="margin-left:auto;background:none;border:none;color:var(--mut);cursor:pointer;padding:4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
-      <!-- Loading state -->
       <div id="tutor-loading" style="text-align:center;padding:1.5rem;background:var(--sur);border:1px solid var(--bdr);border-radius:14px">
         <div style="width:36px;height:36px;margin:0 auto .75rem;border:3px solid var(--bdr);border-top-color:var(--pur);border-radius:50%;animation:spin .75s linear infinite"></div>
         <div style="font-size:.82rem;color:var(--mut)" id="tutor-loading-txt">Analysing what tripped you up…</div>
       </div>
-      <!-- Tutor content -->
       <div id="tutor-content" style="display:none">
-        <!-- Text explanation -->
         <div id="tutor-text" style="background:var(--sur);border:1px solid var(--bdr);border-radius:14px;padding:1.125rem;font-size:.875rem;line-height:1.75;color:var(--txt);margin-bottom:.875rem;white-space:pre-wrap"></div>
-        <!-- Interactive visual -->
         <div id="tutor-visual" style="background:var(--sur);border:1px solid var(--bdr);border-radius:14px;overflow:hidden;margin-bottom:.875rem"></div>
-        <!-- Analogy box -->
         <div id="tutor-analogy" style="display:none;background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.22);border-radius:12px;padding:1rem;font-size:.84rem;line-height:1.7;color:var(--txt);margin-bottom:.875rem">
           <div style="font-size:.67rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--pur);margin-bottom:.4rem">💡 Real-World Analogy</div>
           <div id="tutor-analogy-txt"></div>
         </div>
-        <!-- Step navigator -->
         <div id="tutor-steps" style="display:none;margin-bottom:.875rem">
           <div style="font-size:.67rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--acc2);margin-bottom:.5rem">Step-by-step</div>
           <div id="tutor-steps-list"></div>
@@ -500,7 +488,6 @@ button{font-family:var(--fb)}
             <span id="tutor-step-n" style="margin-left:auto;font-size:.78rem;color:var(--mut);align-self:center"></span>
           </div>
         </div>
-        <!-- Continue button -->
         <button onclick="tutorContinue()" class="btn-p" style="width:100%;justify-content:center;padding:.65rem">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           Got it — continue studying
@@ -816,21 +803,115 @@ return `You are the greatest medical educator and exam preparation specialist wh
 
 Generate exactly ${n} flashcards for ${exam} from: "${nm}".
 ${foc}
-${hasImgs ? 'DIAGRAMS PROVIDED: Walk through every label, arrow, box, and pathway step in plain everyday language before explaining its biological meaning.' : ''}
+${hasImgs ? 'DIAGRAMS PROVIDED: Walk through every component — every box, arrow, label, number, and pathway step — in plain everyday language before explaining its biological meaning.' : ''}
 
 ═══════════════════════════════════════════
 THE SACRED RULE — APPLIES TO ALL EXAMS
 ═══════════════════════════════════════════
 Before using ANY scientific or medical term, explain what it is in plain English first. Never assume prior knowledge. Build from the ground up every time.
 
-WRONG: "Aortic stenosis causes a crescendo-decrescendo murmur."
-RIGHT: "The aorta is the large artery that carries blood from the heart to the rest of the body. The aortic valve sits at the exit of the heart's main pumping chamber and opens to let blood through with each heartbeat. When this valve becomes stiff and narrowed — a condition called aortic stenosis — blood has to squeeze through a smaller opening. This creates turbulence, which produces a sound called a murmur. Because the turbulence builds as the heart pushes blood through and then fades as pressure drops, the sound has a characteristic pattern — louder then quieter — called crescendo-decrescendo."
+WRONG: "Metformin inhibits hepatic gluconeogenesis via Complex I inhibition."
+RIGHT: "Metformin is a diabetes drug that works in the liver. The liver normally makes new glucose from non-sugar molecules — a process called gluconeogenesis — which keeps blood sugar elevated in type 2 diabetes even without eating. Metformin enters liver cells and blocks a protein called Complex I in the mitochondria, reducing the liver's energy supply just enough to slow this glucose production without shutting it down entirely."
+
+This rule applies to every term: drug names, pathways, receptors, anatomy, disease names. Explain it, then name it.
 
 ═══════════════════════════════════════════
 EXAM-SPECIFIC INSTRUCTIONS
 ═══════════════════════════════════════════
 
-${exam === 'OET' ? `
+${exam === 'MCCQE1' ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MCCQE1 — MCC BLUEPRINT-ALIGNED QUESTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The MCCQE is built on two dimensions. Every question maps to BOTH a Physician Activity AND a Dimension of Care. You must rotate across all cells of this matrix.
+
+PHYSICIAN ACTIVITIES (Row % of exam):
+━ Assessment/Diagnosis — 45% of exam (MOST COMMON)
+━ Management — 35% of exam
+━ Communication — 10% of exam
+━ Professional Behaviours — 10% of exam
+
+DIMENSIONS OF CARE (Column % of exam):
+━ Acute Care — 35% (MOST COMMON)
+━ Chronic Care — 30%
+━ Health Promotion & Illness Prevention — 20%
+━ Psychosocial Aspects — 15%
+
+SIX DISCIPLINES (roughly equal, ~1/6 each):
+Medicine | Surgery | Pediatrics | Psychiatry | Obstetrics & Gynecology | PHELO
+
+CanMEDS ROLES covered:
+Medical Expert (majority) + Communicator + Collaborator + Health Advocate + Professional
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUESTION TYPES — Rotate through ALL of these
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TYPE 1 — ASSESSMENT/DIAGNOSIS + ACUTE (most common cell):
+A patient presents with an acute problem. What is the most likely diagnosis or the first investigation?
+"A 67-year-old man presents to the ER with sudden-onset crushing chest pain radiating to the jaw, diaphoresis, and nausea for 45 minutes. BP 148/92, HR 102. ECG shows ST elevation in leads II, III, aVF. What is the most appropriate immediate next step?"
+
+TYPE 2 — MANAGEMENT + ACUTE:
+Diagnosis is given or obvious. What do you do?
+"A 28-year-old woman at 36 weeks gestation presents with BP 162/108, headache, and 3+ proteinuria. She has been diagnosed with severe preeclampsia. What is the most appropriate immediate management?"
+
+TYPE 3 — ASSESSMENT/DIAGNOSIS + CHRONIC:
+Ongoing condition, monitoring, or follow-up.
+"A 54-year-old man with type 2 diabetes has been on metformin for 3 years. His last HbA1c was 8.2% (target <7%). He has no kidney or liver disease. Which medication would be most appropriate to add?"
+
+TYPE 4 — HEALTH PROMOTION & ILLNESS PREVENTION (often missed by candidates):
+Screening, immunization, preventive counselling — this is 20% of the exam.
+"A 50-year-old woman with no prior colonoscopy and average risk for colorectal cancer presents for a periodic health exam. She asks about colorectal cancer screening. Which of the following is the most appropriate recommendation according to Canadian guidelines?"
+
+TYPE 5 — COMMUNICATION (10% of exam — DO NOT SKIP):
+How do you say it, not just what to do.
+"A 42-year-old man has just been told his biopsy confirms colorectal cancer. He asks you not to tell his wife who is in the waiting room. What is the most appropriate response?"
+
+TYPE 6 — PROFESSIONAL BEHAVIOURS & PHELO (10% of exam):
+Ethics, consent, legal obligations, error disclosure, Indigenous health, social determinants.
+"A 16-year-old presents alone requesting contraception. She does not want her parents informed. She demonstrates capacity to make this decision. What is the most appropriate next step?"
+
+TYPE 7 — PSYCHOSOCIAL ASPECTS:
+Mental health comorbidities, functional impact, social barriers to care.
+"A 38-year-old woman with well-controlled rheumatoid arthritis tells her family physician she has stopped taking her methotrexate because she cannot afford it. She is worried about losing her job if she takes time off for infusions. What is the most appropriate initial response?"
+
+TYPE 8 — PEDIATRIC-SPECIFIC:
+Child presentations differ from adults. Use age-specific normal values and developmental context.
+"A mother brings her 18-month-old for a routine visit. The child is not yet walking independently and has no words. The physician notices the child does not make eye contact. What is the most appropriate next step?"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUESTION FORMAT RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CLINICAL VIGNETTE FORMAT (use for most cards):
+- 3-6 sentences
+- Specific patient: age, sex, setting (family physician office, walk-in clinic, ER, hospital ward, phone call, home visit)
+- Real numbers: BP 138/88 mmHg, HR 92 bpm, Hgb 94 g/L (normal 120-160), TSH 0.1 mU/L (normal 0.4-4.0)
+- Key positive AND negative findings — what is absent matters as much as what is present
+- End with ONE focused question from the types above
+
+CANADIAN CONTEXT (mandatory for MCCQE1):
+- Use Canadian screening guidelines (Canadian Task Force on Preventive Health Care, not USPSTF)
+- Reference Canadian drug formularies and generic names
+- Include Indigenous health, social determinants, structural barriers where relevant
+- Settings: family physician office, walk-in clinic, community health centre, ER, long-term care, telephone encounter
+- Referral thresholds and wait-time awareness
+
+DIFFICULTY DISTRIBUTION matching exam blueprint:
+- Easy (20%): Textbook classic presentation, single-step reasoning
+- Medium (55%): Two-step reasoning — identify then manage, or investigate then interpret
+- Hard (25%): Atypical presentation, competing diagnoses, ethical complexity, or communication challenge
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ANSWER FORMAT (MCCQE1-specific)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Line 1: The specific correct answer (not vague — "Start levothyroxine 50 mcg orally daily" not "treat the thyroid")
+Line 2: The 2-3 clinical features from this specific stem that point to this answer
+Line 3: Why the most tempting wrong answer is WRONG — this is what separates a pass from a high score
+Line 4: Mnemonic if one exists — written out in full
+
+` : exam === 'OET' ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 OET — OCCUPATIONAL ENGLISH TEST
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -846,87 +927,51 @@ Mechanism field: Explain the OET Writing criteria — Content (task completion),
 
 READING (Part A — Expeditious Reading, Part B — Close Reading, Part C — Inference):
 Card presents a short medical text or case extract. Tests skimming, scanning, inference, and vocabulary in context.
-Question: "Read this extract: [medical text excerpt]. The word 'exacerbated' in paragraph 2 most nearly means which of the following?"
-OR: "According to the text, which of the following statements is correct?"
+Question: "Read this extract: [medical text excerpt]. The word in context most nearly means which of the following?"
 Answer: Correct option with explanation of the linguistic clue that makes it correct.
 
 LISTENING (Clinical Conversations):
 Card presents a transcript of a clinical interaction. Tests comprehension of speaker intent, note completion, and inference.
-Question: "A nurse is explaining discharge instructions to a patient [transcript excerpt]. What is the nurse's main concern about the patient's understanding?"
 
 SPEAKING (Role Plays):
 Card presents a role-play scenario. Tests the student's ability to structure a professional clinical conversation.
-Question: "You are a nurse. A patient has just been told they have type 2 diabetes and looks upset. Using the SPIKES framework, what is the most appropriate opening statement?"
-Answer: Model response showing appropriate professional language, empathy, and structure.
-Mechanism field: Explain the OET Speaking criteria — Intelligibility, Fluency, Listenership, Communication, Language. Give the model phrasing and explain what makes it score Band B or above.
+Mechanism field: Explain the OET Speaking criteria and model phrasing.
 
 VOCABULARY CARDS:
-High-yield medical English words that appear frequently in OET texts.
-Question: "In the sentence 'The patient was ambulatory on admission', what does ambulatory mean and in which clinical context would you use its opposite?"
-Answer: Word meaning, usage, clinical context, and common collocations.
+High-yield medical English words. Question: word in context. Answer: meaning, usage, collocations.
 
-OET system categories to use: OET Writing|OET Reading|OET Listening|OET Speaking|Medical Vocabulary|Clinical Communication
+OET system categories: OET Writing|OET Reading|OET Listening|OET Speaking|Medical Vocabulary|Clinical Communication
 ` : exam === 'NAC OSCE' ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 NAC OSCE — NATIONAL ASSESSMENT COLLABORATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-The NAC OSCE has 12 stations, 11 minutes each, with standardised patients. You are marked on history taking, physical examination, communication skills, clinical reasoning, and management. Cards must simulate station encounters and teach structured clinical approaches.
+The NAC OSCE has 12 stations, 11 minutes each, with standardised patients. Cards must simulate station encounters and teach the structured approach examiners mark.
 
-Rotate through these station types:
+Rotate through: History Taking | Physical Examination | Communication | Breaking Bad News | Emergency Management | Clinical Reasoning | Informed Consent | Patient Education
 
-HISTORY TAKING STATIONS:
-Present a chief complaint. Card tests the structured approach to history.
-Question: "A 45-year-old man presents to your clinic with chest pain for 2 hours. List the first 5 questions you would ask to characterise this pain, in order of priority."
-Answer: SOCRATES or equivalent structured approach — Site, Onset, Character, Radiation, Associated symptoms, Timing, Exacerbating/relieving factors, Severity. With explanation of WHY each question matters clinically.
-Mechanism field: Explain what the examiner is marking — opening the encounter, active listening, picking up patient cues, patient-centred questioning, not missing red flags. Explain what distinguishes a Pass from a Fail at this station.
+Every mechanism field explains: what the examiner's checklist includes, what earns full marks vs partial vs fail, exact phrases that score points, common mistakes.
 
-PHYSICAL EXAMINATION STATIONS:
-Present a clinical finding or ask student to demonstrate an examination approach.
-Question: "You are asked to examine a patient's cardiovascular system. You notice the patient is dyspnoeic at rest and has raised JVP. What are the next three most important examination steps in sequence and what are you looking for with each?"
-Answer: Structured examination sequence with clinical reasoning for each step.
-
-COMMUNICATION STATIONS:
-Breaking bad news, informed consent, patient education, dealing with a difficult patient.
-Question: "A 58-year-old woman has just been told her biopsy confirms breast cancer. She says 'I don't want to tell my family yet.' Using the SPIKES protocol, what is the most appropriate response to her request?"
-Answer: Model response with explanation of the communication principle it demonstrates.
-Mechanism field: SPIKES breakdown — Setting, Perception, Invitation, Knowledge, Emotions/Empathy, Strategy/Summary. Explain what the examiner is scoring: acknowledging emotion, not rushing, respecting autonomy, practical next steps.
-
-MANAGEMENT STATIONS:
-Present a clinical scenario. Test immediate management and investigation choices.
-Question: "A 32-year-old woman at 28 weeks gestation presents with BP 158/104 and 2+ proteinuria. You have 2 minutes to outline your immediate management. What are your first three actions?"
-Answer: Structured ABCDE or condition-specific protocol with rationale.
-
-CLINICAL REASONING STATIONS:
-Integrate history, examination, and investigation to reach a diagnosis and plan.
-Question: "A 67-year-old man has a 3-week history of progressive dysphagia to solids, 8 kg weight loss, and a smoking history of 40 pack-years. What is the most likely diagnosis and what is your investigation pathway?"
-
-NAC OSCE marking insight in every mechanism field:
-- What the examiner's checklist includes
-- What earns full marks vs partial marks vs fail
-- The exact phrases and behaviours that score points
-- Common mistakes that cause candidates to fail this station type
-
+SPIKES protocol for breaking bad news. SOCRATES for pain history. ABCDE for emergencies.
 NAC OSCE system categories: History Taking|Physical Examination|Communication Skills|Emergency Management|Clinical Reasoning|Breaking Bad News|Informed Consent|Patient Education
-` : exam === 'MCCQE1' ? `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MCCQE1 — CANADIAN MEDICAL LICENSING
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Rotate between MCC Official Prep style (3-5 sentence focused vignettes) and CanadaQBank style (5-8 sentence detailed scenarios with distractors). Canadian clinical context throughout — family medicine, walk-in clinic, ER, community hospital. Canadian Task Force screening guidelines. Questions end with: most appropriate next step, which investigation, when to refer, most likely diagnosis, or initial treatment.
-
-Answer includes: specific correct answer, why it is correct, why the most tempting wrong answer is wrong, mnemonic if one exists.
 ` : `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-USMLE ${exam} — UNITED STATES MEDICAL LICENSING
+USMLE ${exam}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Write full clinical vignettes (4-6 sentences) with exact lab values and normal ranges, specific demographics, and one focused question. Rotate question types: enzyme deficiency, most likely diagnosis, mechanism, next step, expected lab finding, distinguishing feature. Answer includes the direct answer, key recognisable features, and mnemonic written in full.
+Write full clinical vignettes (4-6 sentences) with exact lab values and normal ranges, specific demographics, and one focused question. Rotate question types: enzyme deficiency, diagnosis, mechanism, next step, expected lab finding, distinguishing feature. Answer: direct answer, key recognisable features, mnemonic in full.
 `}
 
 ═══════════════════════════════════════════
 MECHANISM FIELD — REQUIRED FOR ALL EXAMS
 ═══════════════════════════════════════════
-For clinical exams (USMLE, MCCQE1, NAC OSCE): 10+ sentences explaining the biology from normal physiology to bedside findings, using plain language with every term explained before it is used.
+For clinical exams (USMLE, MCCQE1, NAC OSCE):
+10+ sentences from normal physiology to bedside findings. Plain language. Every term explained before use. Sacred Rule always applies.
 
-For OET: Explain the language skill, the exam criteria being tested, the scoring rubric, and model responses. Minimum 6 sentences.
+For MCCQE1 specifically — also include:
+- Which blueprint cell this question maps to (e.g. "Assessment/Diagnosis + Acute Care")
+- Which CanMEDS role is being tested (e.g. "Medical Expert — diagnosis" or "Communicator — breaking bad news")
+- The MCC Examination Objective this relates to (e.g. "Hypertension, Objective 9")
+
+For OET: Explain the language skill, exam criteria, scoring rubric, and model responses. Minimum 6 sentences.
 
 ${di}
 
@@ -935,15 +980,18 @@ OUTPUT
 ═══════════════════════════════════════════
 Return ONLY valid JSON array. No markdown. No backticks. No text before or after:
 [{
-  "question": "Full scenario, vignette, language task, or station prompt appropriate to the exam",
-  "answer": "Correct answer with explanation — format varies by exam as described above",
-  "mechanism": "Deep explanation of the concept, skill, or scoring criteria — plain language throughout",
-  "topic": "Specific subtopic (e.g. Cardiology — Aortic Stenosis, OET Writing — Referral Letters, NAC OSCE — Breaking Bad News)",
-  "system": "System or OET/OSCE category as defined above",
+  "question": "Full clinical vignette or task as described above",
+  "answer": "Specific correct answer\\nKey clinical features pointing to it\\nWhy the tempting wrong answer is wrong\\nMnemonic if exists",
+  "mechanism": "10+ sentences plain language + blueprint mapping for MCCQE1",
+  "topic": "Discipline — Specific Topic (e.g. Medicine — Cardiology, PHELO — Consent, Psychiatry — Depression)",
+  "system": "Cardiology|Respirology|Gastroenterology|Nephrology|Neurology|Endocrinology|Hematology|Infectious Disease|Rheumatology|Dermatology|Psychiatry|Obstetrics|Gynaecology|Paediatrics|Surgery|Emergency Medicine|Family Medicine|PHELO|Pharmacology|Biochemistry|OET Writing|OET Reading|OET Listening|OET Speaking|Medical Vocabulary|History Taking|Physical Examination|Communication Skills|Breaking Bad News|Informed Consent|Patient Education",
+  "blueprint_cell": "For MCCQE1: e.g. Assessment/Diagnosis + Acute Care | Management + Chronic Care | Communication + Psychosocial",
+  "canmeds_role": "For MCCQE1: Medical Expert | Communicator | Collaborator | Health Advocate | Professional | Leader",
   "difficulty": "easy|medium|hard",
   "exam": "${exam}",
-  "buzzwords": "3-6 key terms, phrases, or criteria for this card"
-}]`;}
+  "buzzwords": "3-6 key terms or findings"
+}]`;
+}
 
 // ══ API CALL ══
 async function callAPI(msgs){
@@ -1014,7 +1062,6 @@ function rdDecks(){
       +'<div style="font-size:.69rem;color:var(--mut);margin-top:3px">'+pct+'% mastered</div>'
       +'<div class="d-flex gap-2 mt-3">'
         +'<button class="btn-p" style="flex:1" onclick="event.stopPropagation();startStudy(\'deck\',\''+d.id+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>Study</button>'
-        +(d.cards.filter(x=>(x.mastery||0)<2).length?'<button class="btn-o" style="border-color:rgba(239,68,68,.45);color:var(--red);padding:.55rem .75rem" onclick="event.stopPropagation();startRevision(\''+d.id+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></button>':'')
         +'<button class="btn-d" onclick="event.stopPropagation();delDeck(\''+d.id+'\')" title="Delete"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>'
       +'</div>'
       +'<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--bdr)">'
@@ -1193,6 +1240,7 @@ function rdBrowse(){
       +'<div class="fc-top">'+xe(c.topic||c.system||'')+'</div>'
       +'<div class="fc-q">'+xe(c.question)+'</div>'
       +(c.buzzwords?'<div class="fc-bw">🏷 '+xe(c.buzzwords)+'</div>':'')
+      +(c.blueprint_cell?'<div style="font-size:.66rem;color:var(--acc2);margin-top:3px">📋 '+xe(c.blueprint_cell)+'</div>':'')
       +'<div class="fc-meta"><span class="bdiff '+(c.difficulty||'medium')+'">'+( c.difficulty||'medium')+'</span><span class="bsys">'+xe(c.system||'General')+'</span><div class="mdots">'+dots+'</div>'
       +'<button class="edit-ic" onclick="event.stopPropagation();editCard(\''+c.id+'\')" title="Edit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
       +'</div></div>';
@@ -1238,14 +1286,7 @@ function startStudy(mode,did){
   G.sq=shuffle([...cards]);G.si=0;document.getElementById('study').classList.add('on');G.flip=false;loadCard();
 }
 function studyOne(id){const c=aC().find(x=>x.id===id);if(!c)return;G.sq=[c];G.si=0;document.getElementById('study').classList.add('on');G.flip=false;loadCard();}
-function closeStudy(){
-  document.getElementById('study').classList.remove('on');
-  // Remove revision banner if present
-  const rb = document.getElementById('revision-banner');
-  if(rb) rb.remove();
-  G.studyMode = 'normal';
-  save();rdBrowse();rdDue();rdStats();updBadge();
-}
+function closeStudy(){document.getElementById('study').classList.remove('on');const rb=document.getElementById('revision-banner');if(rb)rb.remove();G.studyMode='normal';save();rdBrowse();rdDue();rdStats();updBadge();}
 function loadCard(){
   const c=G.sq[G.si];
   if(!c){closeStudy();toast('🎉 Session complete!','s');return;}
@@ -1261,23 +1302,7 @@ function loadCard(){
   document.getElementById('rrow').style.display='none';document.getElementById('flip-hint').style.display='flex';
   document.getElementById('study').scrollTop=0;
 }
-function flipCard(){
-  if(G.flip)return;G.flip=true;
-  document.getElementById('fcard').classList.add('flipped');
-  document.getElementById('rrow').style.display='flex';
-  document.getElementById('flip-hint').style.display='none';
-  // In exam mode, show a subtle mode indicator
-  if(G.examMode){
-    const rrow = document.getElementById('rrow');
-    if(rrow && !document.getElementById('exam-hint')){
-      const h = document.createElement('div');
-      h.id='exam-hint';
-      h.style.cssText='width:100%;text-align:center;font-size:.72rem;color:var(--gld);margin-bottom:.25rem;letter-spacing:.04em';
-      h.textContent='⚡ EXAM MODE — Rate honestly';
-      rrow.insertAdjacentElement('beforebegin', h);
-    }
-  }
-}
+function flipCard(){if(G.flip)return;G.flip=true;document.getElementById('fcard').classList.add('flipped');document.getElementById('rrow').style.display='flex';document.getElementById('flip-hint').style.display='none';}
 function rate(q){
   const card=G.sq[G.si];if(!card)return;
   for(const d of G.decks){
@@ -1288,12 +1313,8 @@ function rate(q){
     dc.due=new Date(Date.now()+dc.interval*86400000).toISOString();dc.rev=(dc.rev||0)+1;break;
   }
   save();
-  // Trigger AI tutor on Forgot or Hard (skip in Exam Mode)
-  if(q<3 && !G.examMode){
-    triggerTutor(card,q===0?'forgot':'hard');
-  } else {
-    G.si++;loadCard();
-  }
+  if(q<3&&!G.examMode){triggerTutor(card,q===0?'forgot':'hard');}
+  else{G.si++;loadCard();}
 }
 function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
 
@@ -1390,349 +1411,166 @@ function clearAll(){if(!confirm('Delete ALL decks and cards? This cannot be undo
 function toast(msg,type='i'){const d=document.createElement('div');d.className='ti '+type;d.innerHTML='<div class="td '+type+'"></div><span>'+msg+'</span>';document.getElementById('toasts').appendChild(d);setTimeout(()=>d.remove(),4500);}
 
 // ══ AI TUTOR ══
-let _tutorCard = null;
-let _tutorSteps = [];
-let _tutorStepIdx = 0;
-let _tutorPending = false;
+let _tutorCard=null,_tutorSteps=[],_tutorStepIdx=0;
 
-async function triggerTutor(card, difficulty){
-  if(!G.apiKey){ G.si++; loadCard(); return; }
-  _tutorCard = card;
-  _tutorSteps = [];
-  _tutorStepIdx = 0;
-  _tutorPending = true;
-
-  // Show panel, hide rating row
-  const panel = document.getElementById('tutor-panel');
-  const rrow = document.getElementById('rrow');
-  const loading = document.getElementById('tutor-loading');
-  const content = document.getElementById('tutor-content');
-  const loadingTxt = document.getElementById('tutor-loading-txt');
-
-  panel.style.display = 'block';
-  rrow.style.display = 'none';
-  loading.style.display = 'block';
-  content.style.display = 'none';
-  document.getElementById('study').scrollTo({top: document.getElementById('study').scrollHeight, behavior:'smooth'});
-
-  const msgs = [
-    difficulty === 'forgot'
-      ? 'Analysing what tripped you up…'
-      : 'Finding a clearer way to explain this…',
-    'Building a step-by-step walkthrough…',
-    'Generating the visual…'
-  ];
-  let mi = 0;
-  const ticker = setInterval(()=>{ if(loadingTxt) loadingTxt.textContent = msgs[mi++ % msgs.length]; }, 2200);
-
+async function triggerTutor(card,difficulty){
+  if(!G.apiKey){G.si++;loadCard();return;}
+  _tutorCard=card;_tutorSteps=[];_tutorStepIdx=0;
+  const panel=document.getElementById('tutor-panel');
+  const rrow=document.getElementById('rrow');
+  const loading=document.getElementById('tutor-loading');
+  const content=document.getElementById('tutor-content');
+  const loadTxt=document.getElementById('tutor-loading-txt');
+  panel.style.display='block';rrow.style.display='none';loading.style.display='block';content.style.display='none';
+  document.getElementById('study').scrollTo({top:document.getElementById('study').scrollHeight,behavior:'smooth'});
+  const msgs=['Analysing what tripped you up…','Building a step-by-step walkthrough…','Generating the visual…'];
+  let mi=0;const ticker=setInterval(()=>{if(loadTxt)loadTxt.textContent=msgs[mi++%msgs.length];},2200);
   try{
-    const prompt = buildTutorPrompt(card, difficulty);
-    const resp = await callAPI([{role:'user', content: prompt}]);
-    // callAPI returns parsed cards array — for tutor we call raw
+    const raw=await callTutorAPI(card,difficulty);
     clearInterval(ticker);
-    // Actually need raw API call for tutor since response isn't card array
-    throw new Error('USE_RAW');
-  }catch(e){
-    clearInterval(ticker);
-    if(e.message !== 'USE_RAW') console.error('Tutor error:', e);
-  }
-
-  // Raw API call for tutor
-  try{
-    const rawResp = await callTutorAPI(card, difficulty);
-    loading.style.display = 'none';
-    content.style.display = 'block';
-    renderTutor(rawResp);
+    loading.style.display='none';content.style.display='block';
+    renderTutor(raw);
   }catch(err){
-    loading.style.display = 'none';
-    content.style.display = 'block';
-    document.getElementById('tutor-text').textContent = 'Could not load tutor explanation. ' + err.message;
-    document.getElementById('tutor-visual').style.display = 'none';
-    console.error('Tutor fetch error:', err);
+    clearInterval(ticker);
+    loading.style.display='none';content.style.display='block';
+    document.getElementById('tutor-text').textContent='Could not load tutor. '+err.message;
+    document.getElementById('tutor-visual').style.display='none';
+    console.error('Tutor error:',err);
   }
 }
 
-async function callTutorAPI(card, difficulty){
-  const label = difficulty === 'forgot' ? 'completely forgot' : 'found hard to understand';
-  const exam = card.exam || G.se || 'medical exam';
-
-  const systemPrompt = `You are the world's most gifted medical teacher. A student just said they ${label} understanding this concept. Your job is to build a completely new explanation from scratch — simpler, more concrete, and with a visual animation.
-
-Return ONLY valid JSON, no markdown, no backticks:
-{
-  "explanation": "A plain-language explanation starting from absolute zero. Assume the student knows nothing. Use everyday analogies first, then introduce medical terms. Minimum 8 sentences. Every single technical term must be explained before being used. Build the concept step by step like a story.",
-  "analogy": "One vivid real-world analogy that makes the concept concrete and memorable. Should be something from everyday life — plumbing, traffic, doors, factories, electrical circuits — whatever fits best.",
-  "steps": [
-    {"title": "Step 1 title", "text": "What is happening at this exact step. Plain language. One concept at a time.", "highlight": "The single most important word or phrase at this step"},
-    {"title": "Step 2 title", "text": "...", "highlight": "..."}
-  ],
-  "visual_type": "circuit|pathway|timeline|comparison|cycle|diagram",
-  "visual_data": {
-    "nodes": [{"id": "A", "label": "Label", "sublabel": "explanation", "color": "acc|grn|red|gld|pur"}],
-    "edges": [{"from": "A", "to": "B", "label": "what flows", "animated": true}],
-    "title": "Visual title"
-  }
-}
-
-The steps array must have 3-6 steps. Each step should reveal one new piece of the concept — like a teacher drawing on a whiteboard one element at a time.
-
-The visual_data should represent the core mechanism as a flow diagram. For AVNRT for example: nodes would be SA node, AV node fast pathway, AV node slow pathway, Bundle of His, ventricles. Edges would show the reentrant circuit. For a drug mechanism: nodes would be the drug, the target receptor, the downstream effect. Keep it simple — 3-7 nodes maximum.`;
-
-  const userMsg = `CONCEPT THE STUDENT STRUGGLED WITH:
+async function callTutorAPI(card,difficulty){
+  const label=difficulty==='forgot'?'completely forgot':'found hard to understand';
+  const exam=card.exam||G.se||'medical exam';
+  const sys=`You are the world's most gifted medical teacher. A student just said they ${label} this concept. Rebuild the explanation from scratch — simpler, more concrete, with a visual animation.
+Return ONLY valid JSON, no markdown:
+{"explanation":"8+ sentence plain-language explanation from absolute zero. Every term explained before use. Analogies first.","analogy":"One vivid real-world analogy from everyday life.","steps":[{"title":"Step title","text":"One concept at a time. Plain language.","highlight":"Single most important word or phrase"}],"visual_type":"circuit|pathway|timeline|comparison|cycle","visual_data":{"nodes":[{"id":"A","label":"Label","sublabel":"brief explanation","color":"acc|grn|red|gld|pur"}],"edges":[{"from":"A","to":"B","label":"what flows","animated":true}],"title":"Visual title"}}
+Steps: 3-6 steps. Visual: 3-7 nodes maximum.`;
+  const usr=`CONCEPT STUDENT STRUGGLED WITH:
 Question: ${card.question}
 Answer: ${card.answer}
-Mechanism from card: ${card.mechanism || 'Not provided'}
+Mechanism: ${card.mechanism||'Not provided'}
 Exam: ${exam}
-Topic: ${card.topic || card.system || 'General'}
-
-The student pressed "${difficulty === 'forgot' ? 'Forgot' : 'Hard'}". They could not confidently picture this concept. Build them a new explanation from the ground up.`;
-
-  const ctrl = new AbortController();
-  const timer = setTimeout(()=>ctrl.abort(), 90000);
-  const r = await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':G.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    signal: ctrl.signal,
-    body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:systemPrompt,messages:[{role:'user',content:userMsg}]})
-  });
+Topic: ${card.topic||card.system||'General'}
+Student pressed "${difficulty==='forgot'?'Forgot':'Hard'}". Rebuild from zero.`;
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),90000);
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':G.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},signal:ctrl.signal,body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:sys,messages:[{role:'user',content:usr}]})});
   clearTimeout(timer);
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+r.status);}
-  const d = await r.json();
-  const txt = d.content.filter(x=>x.type==='text').map(x=>x.text).join('');
+  const d=await r.json();
+  const txt=d.content.filter(x=>x.type==='text').map(x=>x.text).join('');
   return JSON.parse(txt.replace(/```json|```/g,'').trim());
 }
 
 function renderTutor(data){
-  // Explanation text
-  const textEl = document.getElementById('tutor-text');
-  if(textEl) textEl.textContent = data.explanation || '';
-
-  // Analogy
-  const analogyEl = document.getElementById('tutor-analogy');
-  const analogyTxt = document.getElementById('tutor-analogy-txt');
-  if(data.analogy && analogyEl && analogyTxt){
-    analogyTxt.textContent = data.analogy;
-    analogyEl.style.display = 'block';
-  }
-
-  // Steps
-  _tutorSteps = data.steps || [];
-  _tutorStepIdx = 0;
-  const stepsEl = document.getElementById('tutor-steps');
-  if(_tutorSteps.length > 0 && stepsEl){
-    stepsEl.style.display = 'block';
-    renderTutorStep();
-  }
-
-  // Visual
-  if(data.visual_data){
-    renderTutorVisual(data.visual_data, data.visual_type || 'pathway');
-  } else {
-    const vEl = document.getElementById('tutor-visual');
-    if(vEl) vEl.style.display = 'none';
-  }
+  const textEl=document.getElementById('tutor-text');
+  if(textEl)textEl.textContent=data.explanation||'';
+  const analogyEl=document.getElementById('tutor-analogy');
+  const analogyTxt=document.getElementById('tutor-analogy-txt');
+  if(data.analogy&&analogyEl&&analogyTxt){analogyTxt.textContent=data.analogy;analogyEl.style.display='block';}
+  _tutorSteps=data.steps||[];_tutorStepIdx=0;
+  const stepsEl=document.getElementById('tutor-steps');
+  if(_tutorSteps.length&&stepsEl){stepsEl.style.display='block';renderTutorStep();}
+  if(data.visual_data)renderTutorVisual(data.visual_data,data.visual_type||'pathway');
+  else{const vEl=document.getElementById('tutor-visual');if(vEl)vEl.style.display='none';}
 }
 
 function renderTutorStep(){
-  const list = document.getElementById('tutor-steps-list');
-  const prev = document.getElementById('tutor-prev');
-  const next = document.getElementById('tutor-next');
-  const stepN = document.getElementById('tutor-step-n');
-  if(!list||!_tutorSteps.length) return;
-
-  const step = _tutorSteps[_tutorStepIdx];
-  list.innerHTML = '<div style="background:rgba(59,130,246,.07);border:1px solid var(--bdr);border-left:3px solid var(--acc);border-radius:0 10px 10px 0;padding:.875rem">'
-    + '<div style="font-size:.78rem;font-weight:700;color:var(--acc);margin-bottom:.375rem">' + xe(step.title) + '</div>'
-    + '<div style="font-size:.875rem;line-height:1.7;color:var(--txt)">' + xe(step.text).replace(xe(step.highlight||'XXXXXX'), '<strong style="color:var(--gld)">'+xe(step.highlight)+'</strong>') + '</div>'
-    + (step.highlight ? '<div style="margin-top:.5rem;font-size:.75rem;color:var(--gld);font-weight:600">Key concept: ' + xe(step.highlight) + '</div>' : '')
-    + '</div>';
-
-  if(prev) prev.disabled = _tutorStepIdx === 0;
-  if(next) next.textContent = _tutorStepIdx === _tutorSteps.length-1 ? '✓ Done' : 'Next →';
-  if(stepN) stepN.textContent = 'Step '+(_tutorStepIdx+1)+' of '+_tutorSteps.length;
+  const list=document.getElementById('tutor-steps-list');
+  const prev=document.getElementById('tutor-prev');
+  const next=document.getElementById('tutor-next');
+  const stepN=document.getElementById('tutor-step-n');
+  if(!list||!_tutorSteps.length)return;
+  const step=_tutorSteps[_tutorStepIdx];
+  const txt=xe(step.text||'');
+  const hl=step.highlight?xe(step.highlight):'';
+  const highlighted=hl?txt.replace(hl,'<strong style="color:var(--gld)">'+hl+'</strong>'):txt;
+  list.innerHTML='<div style="background:rgba(59,130,246,.07);border:1px solid var(--bdr);border-left:3px solid var(--acc);border-radius:0 10px 10px 0;padding:.875rem">'
+    +'<div style="font-size:.78rem;font-weight:700;color:var(--acc);margin-bottom:.375rem">'+xe(step.title||'')+'</div>'
+    +'<div style="font-size:.875rem;line-height:1.7;color:var(--txt)">'+highlighted+'</div>'
+    +(hl?'<div style="margin-top:.5rem;font-size:.75rem;color:var(--gld);font-weight:600">Key concept: '+hl+'</div>':'')
+    +'</div>';
+  if(prev)prev.disabled=_tutorStepIdx===0;
+  if(next)next.textContent=_tutorStepIdx===_tutorSteps.length-1?'✓ Done':'Next →';
+  if(stepN)stepN.textContent='Step '+(_tutorStepIdx+1)+' of '+_tutorSteps.length;
 }
 
-function tutorStep(dir){
-  const newIdx = _tutorStepIdx + dir;
-  if(newIdx < 0 || newIdx >= _tutorSteps.length) return;
-  _tutorStepIdx = newIdx;
-  renderTutorStep();
-}
+function tutorStep(dir){const n=_tutorStepIdx+dir;if(n<0||n>=_tutorSteps.length)return;_tutorStepIdx=n;renderTutorStep();}
 
-function renderTutorVisual(data, type){
-  const vEl = document.getElementById('tutor-visual');
-  if(!vEl) return;
-  vEl.style.display = 'block';
-
-  const nodes = data.nodes || [];
-  const edges = data.edges || [];
-  const title = data.title || '';
-
-  const colorMap = {acc:'#3b82f6',grn:'#10b981',red:'#ef4444',gld:'#f59e0b',pur:'#8b5cf6',acc2:'#06b6d4'};
-  const isDark = !document.body.classList.contains('light');
-  const bgCol = isDark ? '#111827' : '#f8fafc';
-  const txtCol = isDark ? '#f0f4ff' : '#0f172a';
-  const mutCol = isDark ? '#8899bb' : '#64748b';
-  const surCol = isDark ? '#1a2235' : '#ffffff';
-  const bdrCol = isDark ? 'rgba(255,255,255,.09)' : 'rgba(0,0,0,.1)';
-
-  // Build SVG flow diagram
-  const nodeCount = nodes.length;
-  const W = Math.min(vEl.offsetWidth || 340, 500);
-  const nodeW = 120, nodeH = 54, gapX = 48, gapY = 64;
-
-  // Layout: try to fit in rows
-  const cols = nodeCount <= 3 ? nodeCount : Math.ceil(nodeCount / 2);
-  const rows = Math.ceil(nodeCount / cols);
-  const svgW = cols * (nodeW + gapX) + gapX;
-  const svgH = rows * (nodeH + gapY) + gapY + 30;
-
-  // Position nodes
-  const pos = {};
-  nodes.forEach((n, i) => {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    pos[n.id] = {
-      x: gapX + col * (nodeW + gapX),
-      y: 40 + row * (nodeH + gapY)
-    };
-  });
-
-  let svg = `<svg viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${svgW}px;display:block">`;
-  svg += `<rect width="${svgW}" height="${svgH}" fill="${bgCol}" rx="14"/>`;
-
-  // Title
-  if(title) svg += `<text x="${svgW/2}" y="22" text-anchor="middle" fill="${mutCol}" font-size="11" font-family="-apple-system,sans-serif" font-weight="600" letter-spacing="0.06em">${xe(title).toUpperCase()}</text>`;
-
-  // Animated edges
-  edges.forEach((e, ei) => {
-    const from = pos[e.from], to = pos[e.to];
-    if(!from||!to) return;
-    const x1 = from.x + nodeW/2, y1 = from.y + nodeH/2;
-    const x2 = to.x + nodeW/2, y2 = to.y + nodeH/2;
-    // Adjust to node edges
-    const dx = x2-x1, dy = y2-y1, dist = Math.sqrt(dx*dx+dy*dy);
-    const ux = dx/dist, uy = dy/dist;
-    const sx = x1 + ux*(nodeW/2+2), sy = y1 + uy*(nodeH/2+2);
-    const ex2 = x2 - ux*(nodeW/2+8), ey2 = y2 - uy*(nodeH/2+8);
-
-    const col = e.color ? (colorMap[e.color]||e.color) : '#3b82f6';
-    const dashId = 'dash'+ei;
-    const glowId = 'glow'+ei;
-
+function renderTutorVisual(data,type){
+  const vEl=document.getElementById('tutor-visual');if(!vEl)return;
+  vEl.style.display='block';
+  const nodes=data.nodes||[],edges=data.edges||[],title=data.title||'';
+  const colorMap={acc:'#3b82f6',grn:'#10b981',red:'#ef4444',gld:'#f59e0b',pur:'#8b5cf6',acc2:'#06b6d4'};
+  const isDark=!document.body.classList.contains('light');
+  const bgCol=isDark?'#111827':'#f8fafc',txtCol=isDark?'#f0f4ff':'#0f172a',mutCol=isDark?'#8899bb':'#64748b',surCol=isDark?'#1a2235':'#ffffff',bdrCol=isDark?'rgba(255,255,255,.09)':'rgba(0,0,0,.1)';
+  const nodeW=120,nodeH=54,gapX=48,gapY=64;
+  const nc=nodes.length,cols=nc<=3?nc:Math.ceil(nc/2),rows=Math.ceil(nc/cols);
+  const svgW=cols*(nodeW+gapX)+gapX,svgH=rows*(nodeH+gapY)+gapY+30;
+  const pos={};
+  nodes.forEach((n,i)=>{const col=i%cols,row=Math.floor(i/cols);pos[n.id]={x:gapX+col*(nodeW+gapX),y:40+row*(nodeH+gapY)};});
+  let svg=`<svg viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">`;
+  svg+=`<rect width="${svgW}" height="${svgH}" fill="${bgCol}" rx="14"/>`;
+  if(title)svg+=`<text x="${svgW/2}" y="22" text-anchor="middle" fill="${mutCol}" font-size="11" font-family="-apple-system,sans-serif" font-weight="600" letter-spacing="0.06em">${xe(title).toUpperCase()}</text>`;
+  edges.forEach((e,ei)=>{
+    const from=pos[e.from],to=pos[e.to];if(!from||!to)return;
+    const x1=from.x+nodeW/2,y1=from.y+nodeH/2,x2=to.x+nodeW/2,y2=to.y+nodeH/2;
+    const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;
+    const ux=dx/dist,uy=dy/dist;
+    const sx=x1+ux*(nodeW/2+2),sy=y1+uy*(nodeH/2+2),ex2=x2-ux*(nodeW/2+8),ey2=y2-uy*(nodeH/2+8);
+    const col=colorMap[e.color||'']||'#3b82f6';
     if(e.animated){
-      svg += `<defs><filter id="${glowId}"><feGaussianBlur stdDeviation="2" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
-      svg += `<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${bdrCol}" stroke-width="2"/>`;
-      svg += `<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${col}" stroke-width="2.5" stroke-dasharray="8 6" filter="url(#${glowId})"><animate attributeName="stroke-dashoffset" values="0;-28" dur="1.2s" repeatCount="indefinite"/></line>`;
-      // Arrowhead
-      svg += `<polygon points="${ex2},${ey2} ${ex2-ux*10+uy*5},${ey2-uy*10-ux*5} ${ex2-ux*10-uy*5},${ey2-uy*10+ux*5}" fill="${col}"/>`;
-    } else {
-      svg += `<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${bdrCol}" stroke-width="2"/>`;
-      svg += `<polygon points="${ex2},${ey2} ${ex2-ux*10+uy*5},${ey2-uy*10-ux*5} ${ex2-ux*10-uy*5},${ey2-uy*10+ux*5}" fill="${mutCol}"/>`;
+      svg+=`<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${bdrCol}" stroke-width="2"/>`;
+      svg+=`<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${col}" stroke-width="2.5" stroke-dasharray="8 6"><animate attributeName="stroke-dashoffset" values="0;-28" dur="1.2s" repeatCount="indefinite"/></line>`;
+      svg+=`<polygon points="${ex2},${ey2} ${ex2-ux*10+uy*5},${ey2-uy*10-ux*5} ${ex2-ux*10-uy*5},${ey2-uy*10+ux*5}" fill="${col}"/>`;
+    }else{
+      svg+=`<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${bdrCol}" stroke-width="2"/>`;
+      svg+=`<polygon points="${ex2},${ey2} ${ex2-ux*10+uy*5},${ey2-uy*10-ux*5} ${ex2-ux*10-uy*5},${ey2-uy*10+ux*5}" fill="${mutCol}"/>`;
     }
-
-    // Edge label
-    if(e.label){
-      const mx = (sx+ex2)/2, my = (sy+ey2)/2;
-      svg += `<rect x="${mx-30}" y="${my-9}" width="60" height="16" fill="${bgCol}" rx="4"/>`;
-      svg += `<text x="${mx}" y="${my+4}" text-anchor="middle" fill="${col}" font-size="9" font-family="-apple-system,sans-serif">${xe(e.label)}</text>`;
-    }
+    if(e.label){const mx=(sx+ex2)/2,my=(sy+ey2)/2;svg+=`<rect x="${mx-30}" y="${my-9}" width="60" height="16" fill="${bgCol}" rx="4"/><text x="${mx}" y="${my+4}" text-anchor="middle" fill="${col}" font-size="9" font-family="-apple-system,sans-serif">${xe(e.label)}</text>`;}
   });
-
-  // Nodes
-  nodes.forEach((n, i) => {
-    const p = pos[n.id];if(!p) return;
-    const col = colorMap[n.color||'acc'] || '#3b82f6';
-    const delay = i * 0.15;
-    svg += `<g style="opacity:0;animation:fadein 0.4s ease ${delay}s forwards">`;
-    svg += `<rect x="${p.x}" y="${p.y}" width="${nodeW}" height="${nodeH}" fill="${surCol}" stroke="${col}" stroke-width="1.5" rx="10"/>`;
-    svg += `<rect x="${p.x}" y="${p.y}" width="${nodeW}" height="4" fill="${col}" rx="10 10 0 0"/>`;
-    // Label
-    const labelLines = xe(n.label||'').split(' ');
-    const labelY = n.sublabel ? p.y + nodeH/2 - 6 : p.y + nodeH/2 + 5;
-    svg += `<text x="${p.x+nodeW/2}" y="${labelY}" text-anchor="middle" fill="${txtCol}" font-size="12" font-family="-apple-system,sans-serif" font-weight="600">${labelLines.slice(0,2).join(' ')}</text>`;
-    if(n.sublabel) svg += `<text x="${p.x+nodeW/2}" y="${p.y+nodeH/2+12}" text-anchor="middle" fill="${mutCol}" font-size="9" font-family="-apple-system,sans-serif">${xe(n.sublabel).slice(0,24)}</text>`;
-    svg += '</g>';
+  nodes.forEach((n,i)=>{
+    const p=pos[n.id];if(!p)return;
+    const col=colorMap[n.color||'acc']||'#3b82f6';
+    svg+=`<g style="opacity:0;animation:fadein 0.4s ease ${i*0.15}s forwards">`;
+    svg+=`<rect x="${p.x}" y="${p.y}" width="${nodeW}" height="${nodeH}" fill="${surCol}" stroke="${col}" stroke-width="1.5" rx="10"/>`;
+    svg+=`<rect x="${p.x}" y="${p.y}" width="${nodeW}" height="4" fill="${col}" rx="10 10 0 0"/>`;
+    svg+=`<text x="${p.x+nodeW/2}" y="${p.y+nodeH/2-(n.sublabel?6:0)+5}" text-anchor="middle" fill="${txtCol}" font-size="12" font-family="-apple-system,sans-serif" font-weight="600">${xe(n.label||'').slice(0,18)}</text>`;
+    if(n.sublabel)svg+=`<text x="${p.x+nodeW/2}" y="${p.y+nodeH/2+13}" text-anchor="middle" fill="${mutCol}" font-size="9" font-family="-apple-system,sans-serif">${xe(n.sublabel).slice(0,22)}</text>`;
+    svg+='</g>';
   });
-
-  svg += `<style>@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}</style>`;
-  svg += '</svg>';
-
-  vEl.innerHTML = '<div style="padding:.625rem .5rem .25rem">'
-    + '<div style="font-size:.67rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--acc2);margin-bottom:.375rem;padding:0 .25rem">⚡ Visual Pathway</div>'
-    + svg
-    + '</div>';
+  svg+='<style>@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}</style></svg>';
+  vEl.innerHTML='<div style="padding:.625rem .5rem .25rem"><div style="font-size:.67rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--acc2);margin-bottom:.375rem;padding:0 .25rem">⚡ Visual Pathway</div>'+svg+'</div>';
 }
 
-function closeTutor(){
-  document.getElementById('tutor-panel').style.display = 'none';
-  document.getElementById('rrow').style.display = 'flex';
-  _tutorPending = false;
-}
+function closeTutor(){document.getElementById('tutor-panel').style.display='none';document.getElementById('rrow').style.display='flex';}
 
-function tutorContinue(){
-  document.getElementById('tutor-panel').style.display = 'none';
-  _tutorPending = false;
-  G.si++;
-  loadCard();
-}
+function tutorContinue(){document.getElementById('tutor-panel').style.display='none';G.si++;loadCard();}
 
 // ══ EXAM MODE ══
 function togExamMode(){
-  G.examMode = !G.examMode;
-  save();
-  updExamModeUI();
-  toast(G.examMode ? '⚡ Exam Mode ON — rapid fire, no explanations' : '📖 Back to Normal Mode — deep learning restored', 'i');
+  G.examMode=!G.examMode;save();updExamModeUI();
+  toast(G.examMode?'⚡ Exam Mode ON — rapid fire, no explanations':'📖 Back to Normal Mode','i');
 }
-
 function updExamModeUI(){
-  const btn = document.getElementById('tog-exam');
-  const desc = document.getElementById('exam-mode-desc');
-  const sub = document.getElementById('exam-mode-sub');
-  if(btn) btn.className = 'tog ' + (G.examMode ? 'on' : 'off');
-  if(desc) desc.style.display = G.examMode ? 'block' : 'none';
-  if(sub) sub.textContent = G.examMode
-    ? 'ACTIVE — Rapid fire · No explanations · No AI tutor'
-    : 'Rapid-fire questions · No mechanism · No tutor · Pure drilling';
+  const btn=document.getElementById('tog-exam');
+  const desc=document.getElementById('exam-mode-desc');
+  const sub=document.getElementById('exam-mode-sub');
+  if(btn)btn.className='tog '+(G.examMode?'on':'off');
+  if(desc)desc.style.display=G.examMode?'block':'none';
+  if(sub)sub.textContent=G.examMode?'ACTIVE — Rapid fire · No explanations · No AI tutor':'Rapid-fire · No mechanism · No tutor · Pure drilling';
 }
 
 // ══ REVISION MODE ══
 function startRevision(deckId){
-  const deck = G.decks.find(d => d.id === deckId);
-  if(!deck) return;
-
-  // Get weak cards: mastery < 2, sorted worst first
-  const weak = deck.cards
-    .filter(c => (c.mastery||0) < 2)
-    .sort((a,b) => (a.mastery||0) - (b.mastery||0))
-    .map(c => ({...c, di: deck.id, dn: deck.name}));
-
-  if(!weak.length){
-    toast('No weak cards in this deck — all cards mastered!', 's');
-    return;
-  }
-
-  G.studyMode = 'revision';
-  G.sq = weak;
-  G.si = 0;
-
-  // Show revision banner
-  const inner = document.querySelector('.sv-inner');
-  if(inner){
-    const existing = document.getElementById('revision-banner');
-    if(existing) existing.remove();
-    const banner = document.createElement('div');
-    banner.id = 'revision-banner';
-    banner.style.cssText = 'background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.28);border-radius:10px;padding:.625rem .875rem;font-size:.79rem;color:var(--red);margin-bottom:.875rem;display:flex;align-items:center;gap:7px';
-    banner.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>'
-      + '<span><strong>Revision Mode</strong> — ' + weak.length + ' weak card' + (weak.length>1?'s':'') + ' from "' + deck.name + '". Hammer these until they stick.</span>';
-    inner.insertBefore(banner, inner.firstChild);
-  }
-
-  document.getElementById('study').classList.add('on');
-  G.flip = false;
-  loadCard();
-  toast('Revising ' + weak.length + ' weak cards from "' + deck.name + '"', 'i');
+  const deck=G.decks.find(d=>d.id===deckId);if(!deck)return;
+  const weak=deck.cards.filter(c=>(c.mastery||0)<2).sort((a,b)=>(a.mastery||0)-(b.mastery||0)).map(c=>({...c,di:deck.id,dn:deck.name}));
+  if(!weak.length){toast('No weak cards — all mastered!','s');return;}
+  G.studyMode='revision';G.sq=weak;G.si=0;
+  const inner=document.querySelector('.sv-inner');
+  if(inner){const eb=document.getElementById('revision-banner');if(eb)eb.remove();const banner=document.createElement('div');banner.id='revision-banner';banner.style.cssText='background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.28);border-radius:10px;padding:.625rem .875rem;font-size:.79rem;color:var(--red);margin-bottom:.875rem;display:flex;align-items:center;gap:7px';banner.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg><span><strong>Revision Mode</strong> — '+weak.length+' weak card'+(weak.length>1?'s':'')+' from "'+deck.name+'". Hammer these until they stick.</span>';inner.insertBefore(banner,inner.firstChild);}
+  document.getElementById('study').classList.add('on');G.flip=false;loadCard();
+  toast('Revising '+weak.length+' weak cards from "'+deck.name+'"','i');
 }
 
 // ══ KEYBOARD ══
@@ -1751,4 +1589,5 @@ if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>if(typeof pdfjsLib!=='undefined')pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';</script>
 </body>
-</html>
+</html>+(d.cards.filter(x=>(x.mastery||0)<2).length?'<button class="btn-o" style="border-color:rgba(239,68,68,.45);color:var(--red);padding:.55rem .75rem" onclick="event.stopPropagation();startRevision(\''+d.id+'\')" title="Revise weak cards"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></button>':'')
+        
