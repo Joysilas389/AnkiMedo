@@ -204,13 +204,6 @@ button{font-family:var(--fb)}
 .qopt.correct{border-color:var(--grn)!important;background:rgba(16,185,129,.12)!important;color:var(--grn)!important}
 .qopt.wrong{border-color:var(--red)!important;background:rgba(239,68,68,.12)!important;color:var(--red)!important}
 .qopt.show-c{border-color:var(--grn)!important;background:rgba(16,185,129,.06)!important}
-/* Search dropdown */
-.dd-section{padding:.375rem .75rem .2rem;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
-.dd-item{display:flex;align-items:center;justify-content:space-between;padding:.6rem .875rem;cursor:pointer;font-size:.855rem;border-radius:0;transition:background .12s;gap:.5rem}
-.dd-item:hover,.dd-item:active{background:rgba(59,130,246,.09)}
-.dd-item.act{background:rgba(59,130,246,.12);color:var(--acc);font-weight:500}
-.dd-item .dd-cnt{font-size:.7rem;background:var(--sur2);border-radius:100px;padding:1px 8px;color:var(--mut);flex-shrink:0;min-width:24px;text-align:center}
-.dd-item.act .dd-cnt{background:rgba(59,130,246,.18);color:var(--acc)}
 /* Toast */
 #toasts{position:fixed;bottom:1.25rem;right:1.25rem;z-index:999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
 .ti{background:var(--sur2);border:1px solid var(--bdr2);border-radius:9px;padding:.625rem .875rem;font-size:.82rem;display:flex;align-items:center;gap:7px;animation:tup .25s ease;min-width:220px;max-width:320px;pointer-events:all}
@@ -239,6 +232,8 @@ button{font-family:var(--fb)}
     <button class="sb-btn" onclick="filterExam('USMLE Step 2CK')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>USMLE Step 2CK</button>
     <button class="sb-btn" onclick="filterExam('USMLE Step 3')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>USMLE Step 3</button>
     <button class="sb-btn" onclick="filterExam('MCCQE1')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>MCCQE1</button>
+    <button class="sb-btn" onclick="filterExam('OET')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 9.5-9.5z"/></svg>OET</button>
+    <button class="sb-btn" onclick="filterExam('NAC OSCE')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>NAC OSCE</button>
     <div class="sb-sec" style="margin-top:.5rem">Tools</div>
     <button class="sb-btn" onclick="openQuiz()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-width="3"/></svg>Quiz Mode</button>
     <button class="sb-btn" data-p="stats" onclick="nav('stats')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Statistics</button>
@@ -295,6 +290,8 @@ button{font-family:var(--fb)}
           <button class="xpill" onclick="selX(this,'USMLE Step 2CK')">USMLE Step 2CK</button>
           <button class="xpill" onclick="selX(this,'USMLE Step 3')">USMLE Step 3</button>
           <button class="xpill" onclick="selX(this,'MCCQE1')">MCCQE1</button>
+          <button class="xpill" onclick="selX(this,'OET')">OET</button>
+          <button class="xpill" onclick="selX(this,'NAC OSCE')">NAC OSCE</button>
         </div>
         <div id="proc" style="display:none">
           <div class="proc-box">
@@ -329,33 +326,25 @@ button{font-family:var(--fb)}
 
     <!-- BROWSE -->
     <div class="pg" id="p-browse">
-      <!-- Unified search + topic dropdown -->
-      <div style="position:relative;margin-bottom:.875rem" id="browse-srch-wrap">
-        <div style="display:flex;align-items:center;gap:.5rem">
-          <div class="srch" style="flex:1;margin-bottom:0">
-            <span class="srch-ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
-            <input type="text" id="srch-in" placeholder="Search or pick a topic…" oninput="onSrchInput()" onfocus="showDropdown()" autocomplete="off" style="padding-right:2.4rem">
-            <button id="srch-clear" onclick="clearSrch()" style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--mut);cursor:pointer;padding:0;display:none;line-height:1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+      <div class="row g-3">
+        <div class="col-lg-3 col-md-4">
+          <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:.875rem">
+            <div style="font-family:var(--fh);font-size:.77rem;font-weight:700;margin-bottom:.5rem;color:var(--mut)">TOPICS</div>
+            <ul class="tlist" id="topic-list"><li style="font-size:.79rem;color:var(--mut);padding:.35rem 0">No topics yet</li></ul>
           </div>
         </div>
-        <!-- Dropdown -->
-        <div id="topic-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--sur);border:1px solid var(--bdr2);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:50;max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch">
-          <div id="dropdown-inner"></div>
+        <div class="col-lg-9 col-md-8">
+          <div class="srch"><span class="srch-ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span><input type="text" id="srch-in" placeholder="Search topic, keyword, buzzword…" oninput="filterCards()"></div>
+          <div class="chips">
+            <button class="chip on" onclick="setChip(this,'all')">All</button>
+            <button class="chip" onclick="setChip(this,'easy')"><span style="width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block"></span>Easy</button>
+            <button class="chip" onclick="setChip(this,'medium')"><span style="width:7px;height:7px;border-radius:50%;background:var(--gld);display:inline-block"></span>Medium</button>
+            <button class="chip" onclick="setChip(this,'hard')"><span style="width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block"></span>Hard</button>
+            <button class="chip" onclick="setChip(this,'due')">Due</button>
+          </div>
+          <div class="cgrid" id="cards-g"></div>
         </div>
       </div>
-      <!-- Active filter pill -->
-      <div id="active-filter-pill" style="display:none;margin-bottom:.75rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
-      <!-- Difficulty chips -->
-      <div class="chips">
-        <button class="chip on" onclick="setChip(this,'all')">All</button>
-        <button class="chip" onclick="setChip(this,'easy')"><span style="width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block"></span>Easy</button>
-        <button class="chip" onclick="setChip(this,'medium')"><span style="width:7px;height:7px;border-radius:50%;background:var(--gld);display:inline-block"></span>Medium</button>
-        <button class="chip" onclick="setChip(this,'hard')"><span style="width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block"></span>Hard</button>
-        <button class="chip" onclick="setChip(this,'due')">Due</button>
-      </div>
-      <div class="cgrid" id="cards-g"></div>
     </div>
 
     <!-- DUE -->
@@ -520,7 +509,7 @@ async function encK(k){const salt=_salt(),key=await _dk(salt),iv=crypto.getRando
 async function decK(){const e=localStorage.getItem(_K),iv=localStorage.getItem(_I);if(!e||!iv)return null;try{const key=await _dk(_salt());const p=await crypto.subtle.decrypt({name:'AES-GCM',iv:Uint8Array.from(atob(iv),c=>c.charCodeAt(0))},key,Uint8Array.from(atob(e),c=>c.charCodeAt(0)));return new TextDecoder().decode(p);}catch{return null;}}
 
 // ══ STATE ══
-let G={apiKey:'',decks:[],af:'all',as:'',af_sys:'',ae:null,ad:null,sq:[],si:0,flip:false,cpc:4,dlv:'detailed',foc:'',se:'USMLE Step 1',globalRefresh:true,qn:10,qdiff:'all'};
+let G={apiKey:'',decks:[],af:'all',as:'',ae:null,ad:null,sq:[],si:0,flip:false,cpc:4,dlv:'detailed',foc:'',se:'USMLE Step 1',globalRefresh:true,qn:10,qdiff:'all'};
 
 // ══ INIT ══
 async function init(){
@@ -554,16 +543,16 @@ function nav(p){
   const l=document.querySelector('[data-p="'+p+'"]');if(l)l.classList.add('act');
   document.getElementById('bar-title').textContent=TITLES[p]||p;
   document.getElementById('play-btn').style.display=(p==='due'||p==='browse'||p==='library')?'flex':'none';
-  if(p==='browse'){rdBrowse();updActivePill();}
+  if(p==='browse'){rdBrowse();rdTopics();}
   if(p==='due')rdDue();
-  if(p==='stats')rdStats();updBadge();
+  if(p==='stats')rdStats();
   if(p==='library'){rdDecks();updARUI();}
   if(p==='settings')updARUI();
   closeSB();
 }
 function togSB(){document.getElementById('sb').classList.toggle('open');document.getElementById('mob-bg').classList.toggle('show');}
 function closeSB(){document.getElementById('sb').classList.remove('open');document.getElementById('mob-bg').classList.remove('show');}
-function filterExam(e){G.ae=e;G.ad=null;G.af_sys='';G.as='';const inp=document.getElementById('srch-in');if(inp)inp.value='';nav('browse');}
+function filterExam(e){G.ae=e;G.ad=null;nav('browse');}
 function selX(el,e){document.querySelectorAll('.xpill').forEach(x=>x.classList.remove('on'));el.classList.add('on');G.se=e;}
 
 // ══ MODAL ══
@@ -765,120 +754,137 @@ async function genCards(content,nm,exam){
 }
 
 function mkPrompt(nm,exam,n,di,foc,hasImgs){
-return `You are the greatest medical teacher and question writer who has ever lived. You write flashcards that double as exam preparation for MCCQE1, CanadaQBank, and MCC Official Prep. Your questions feel indistinguishable from the real exam. Your explanations build genuine understanding from first principles so the student can answer any variant of the question, not just the one they memorised.
+return `You are the greatest medical educator and exam preparation specialist who has ever lived. You write flashcards perfectly calibrated to the specific exam the student is preparing for. You understand exactly what each exam tests and you never confuse one format with another.
 
 Generate exactly ${n} flashcards for ${exam} from: "${nm}".
 ${foc}
-${hasImgs ? 'DIAGRAMS PROVIDED: Describe every component of the diagram — every box, arrow, label, number, and pathway step — in plain everyday language before explaining what it means biologically.' : ''}
+${hasImgs ? 'DIAGRAMS PROVIDED: Walk through every label, arrow, box, and pathway step in plain everyday language before explaining its biological meaning.' : ''}
 
 ═══════════════════════════════════════════
-THE SACRED RULE — NEVER BREAK THIS
+THE SACRED RULE — APPLIES TO ALL EXAMS
 ═══════════════════════════════════════════
-Before you use ANY scientific term, explain what it is in plain English first.
+Before using ANY scientific or medical term, explain what it is in plain English first. Never assume prior knowledge. Build from the ground up every time.
 
-WRONG: "HGPRT deficiency impairs purine salvage."
-RIGHT: "Your DNA is built from molecular building blocks called purines. Your body has a recycling system that reuses broken-down purines instead of building new ones from scratch. The enzyme that runs this recycling system is called HGPRT. In this disease, HGPRT is completely absent."
-
-WRONG: "Metformin inhibits hepatic gluconeogenesis via Complex I inhibition."
-RIGHT: "Metformin is a diabetes drug. The liver constantly makes new glucose from non-sugar molecules — this process is called gluconeogenesis, and it is one reason blood sugar stays high in type 2 diabetes even when someone has not eaten. Metformin blocks a protein in the liver cell's mitochondria called Complex I, which reduces the liver's energy supply just enough to slow down this glucose production without stopping it entirely."
-
-This rule applies to every term: enzyme names, drug mechanisms, pathway names, receptor names, anatomical structures, disease names. Explain it, then name it.
+WRONG: "Aortic stenosis causes a crescendo-decrescendo murmur."
+RIGHT: "The aorta is the large artery that carries blood from the heart to the rest of the body. The aortic valve sits at the exit of the heart's main pumping chamber and opens to let blood through with each heartbeat. When this valve becomes stiff and narrowed — a condition called aortic stenosis — blood has to squeeze through a smaller opening. This creates turbulence, which produces a sound called a murmur. Because the turbulence builds as the heart pushes blood through and then fades as pressure drops, the sound has a characteristic pattern — louder then quieter — called crescendo-decrescendo."
 
 ═══════════════════════════════════════════
-EXAM STYLE — CANADAQBANK AND MCC OFFICIAL
+EXAM-SPECIFIC INSTRUCTIONS
 ═══════════════════════════════════════════
 
-You write TWO types of questions and rotate between them. Match the real exam exactly.
+${exam === 'OET' ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OET — OCCUPATIONAL ENGLISH TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The OET tests English language proficiency in healthcare contexts. It is NOT a medical knowledge exam. Cards must target language skills, communication patterns, and vocabulary — not clinical reasoning.
 
-── TYPE 1: MCC OFFICIAL PREP STYLE (shorter, focused, management-heavy) ──
-Format: 3-5 sentences. Chief complaint first. Key positives and key negatives. One clear question.
-Setting: Family medicine office, walk-in clinic, emergency department, hospital ward — the settings a Canadian clerk actually works in.
-Question stem ends with one of:
-- "What is the most appropriate next step in management?"
-- "Which of the following investigations should be ordered first?"
-- "What is the most likely diagnosis?"
-- "When should this patient be referred?"
-- "Which of the following would confirm the diagnosis?"
-- "What is the most appropriate initial treatment?"
+Rotate through these OET sub-skills:
 
-Example style (do not copy — write original):
-"A 58-year-old woman presents to her family physician with 3 months of fatigue and cold intolerance. She takes no medications. On examination, her heart rate is 52 bpm, her reflexes are delayed, and her skin is dry. TSH is 18 mU/L (normal 0.4–4.0). What is the most appropriate initial treatment?"
+WRITING (Referral/Transfer Letters):
+Card shows a set of case notes. Student must identify what to include, what to omit, and how to phrase it professionally.
+Question: "A patient presents with these case notes [provide realistic notes]. You need to write a referral letter to a specialist. Which of the following best describes what should be included in the opening paragraph?"
+Answer: The correct letter structure choice with explanation of WHY that phrasing is professional and appropriate.
+Mechanism field: Explain the OET Writing criteria — Content (task completion), Conciseness (relevance), Layout (format), Language (accuracy, appropriateness). Explain what assessors are looking for and common mistakes that lose marks.
 
-── TYPE 2: CANADAQBANK STYLE (longer, more distractors, deeper reasoning) ──
-Format: 5-8 sentences. Detailed clinical scenario with some irrelevant information to simulate real exam noise. Multiple findings, some pointing toward the diagnosis, some acting as distractors. 4-5 answer options that are all plausible.
-The student must reason through what matters and what does not.
-Question stem ends with one of:
-- "Which of the following is the most appropriate next step?"
-- "Which investigation is most likely to confirm the diagnosis?"
-- "Which of the following best explains this patient's presentation?"
-- "What is the most likely underlying mechanism?"
-- "Which of the following would be most appropriate to start at this visit?"
+READING (Part A — Expeditious Reading, Part B — Close Reading, Part C — Inference):
+Card presents a short medical text or case extract. Tests skimming, scanning, inference, and vocabulary in context.
+Question: "Read this extract: [medical text excerpt]. The word 'exacerbated' in paragraph 2 most nearly means which of the following?"
+OR: "According to the text, which of the following statements is correct?"
+Answer: Correct option with explanation of the linguistic clue that makes it correct.
 
-Example style (do not copy — write original):
-"A 34-year-old man presents to the emergency department with sudden-onset severe headache that he describes as the worst of his life. The headache began 2 hours ago while he was lifting weights at the gym. He vomited once. He has a history of migraines for which he takes sumatriptan, and his last migraine was 3 weeks ago. On examination, he is alert and oriented. Temperature is 37.1°C, BP is 148/92 mmHg, HR is 88 bpm. Neurological examination is normal. There is no neck stiffness. Which of the following is the most appropriate next step?"
+LISTENING (Clinical Conversations):
+Card presents a transcript of a clinical interaction. Tests comprehension of speaker intent, note completion, and inference.
+Question: "A nurse is explaining discharge instructions to a patient [transcript excerpt]. What is the nurse's main concern about the patient's understanding?"
 
-── CANADIAN CLINICAL CONTEXT ──
-Use Canadian-specific details where relevant:
-- Settings: family medicine office, walk-in clinic, community hospital, tertiary care centre, long-term care facility
-- Drug names: use Canadian generic names and common Canadian brands
-- Screening: Canadian Task Force on Preventive Health Care guidelines (not USPSTF)
-- Referral thresholds: Canadian wait time benchmarks
-- Demographic context: Indigenous Canadians for relevant conditions (diabetes, TB, rheumatic heart disease), French-Canadian population for specific genetic conditions (Tay-Sachs, familial hypercholesterolaemia variants)
-- OHIP-insured investigations come before non-insured ones
+SPEAKING (Role Plays):
+Card presents a role-play scenario. Tests the student's ability to structure a professional clinical conversation.
+Question: "You are a nurse. A patient has just been told they have type 2 diabetes and looks upset. Using the SPIKES framework, what is the most appropriate opening statement?"
+Answer: Model response showing appropriate professional language, empathy, and structure.
+Mechanism field: Explain the OET Speaking criteria — Intelligibility, Fluency, Listenership, Communication, Language. Give the model phrasing and explain what makes it score Band B or above.
 
-── DIFFICULTY DISTRIBUTION ──
-- Easy (25%): Single-step diagnosis or management. Classic presentation, no distractors.
-- Medium (50%): Two-step reasoning. Diagnosis then management, or investigation then interpretation.
-- Hard (25%): Multi-step reasoning. Atypical presentation, competing diagnoses, or complication management.
+VOCABULARY CARDS:
+High-yield medical English words that appear frequently in OET texts.
+Question: "In the sentence 'The patient was ambulatory on admission', what does ambulatory mean and in which clinical context would you use its opposite?"
+Answer: Word meaning, usage, clinical context, and common collocations.
+
+OET system categories to use: OET Writing|OET Reading|OET Listening|OET Speaking|Medical Vocabulary|Clinical Communication
+` : exam === 'NAC OSCE' ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NAC OSCE — NATIONAL ASSESSMENT COLLABORATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The NAC OSCE has 12 stations, 11 minutes each, with standardised patients. You are marked on history taking, physical examination, communication skills, clinical reasoning, and management. Cards must simulate station encounters and teach structured clinical approaches.
+
+Rotate through these station types:
+
+HISTORY TAKING STATIONS:
+Present a chief complaint. Card tests the structured approach to history.
+Question: "A 45-year-old man presents to your clinic with chest pain for 2 hours. List the first 5 questions you would ask to characterise this pain, in order of priority."
+Answer: SOCRATES or equivalent structured approach — Site, Onset, Character, Radiation, Associated symptoms, Timing, Exacerbating/relieving factors, Severity. With explanation of WHY each question matters clinically.
+Mechanism field: Explain what the examiner is marking — opening the encounter, active listening, picking up patient cues, patient-centred questioning, not missing red flags. Explain what distinguishes a Pass from a Fail at this station.
+
+PHYSICAL EXAMINATION STATIONS:
+Present a clinical finding or ask student to demonstrate an examination approach.
+Question: "You are asked to examine a patient's cardiovascular system. You notice the patient is dyspnoeic at rest and has raised JVP. What are the next three most important examination steps in sequence and what are you looking for with each?"
+Answer: Structured examination sequence with clinical reasoning for each step.
+
+COMMUNICATION STATIONS:
+Breaking bad news, informed consent, patient education, dealing with a difficult patient.
+Question: "A 58-year-old woman has just been told her biopsy confirms breast cancer. She says 'I don't want to tell my family yet.' Using the SPIKES protocol, what is the most appropriate response to her request?"
+Answer: Model response with explanation of the communication principle it demonstrates.
+Mechanism field: SPIKES breakdown — Setting, Perception, Invitation, Knowledge, Emotions/Empathy, Strategy/Summary. Explain what the examiner is scoring: acknowledging emotion, not rushing, respecting autonomy, practical next steps.
+
+MANAGEMENT STATIONS:
+Present a clinical scenario. Test immediate management and investigation choices.
+Question: "A 32-year-old woman at 28 weeks gestation presents with BP 158/104 and 2+ proteinuria. You have 2 minutes to outline your immediate management. What are your first three actions?"
+Answer: Structured ABCDE or condition-specific protocol with rationale.
+
+CLINICAL REASONING STATIONS:
+Integrate history, examination, and investigation to reach a diagnosis and plan.
+Question: "A 67-year-old man has a 3-week history of progressive dysphagia to solids, 8 kg weight loss, and a smoking history of 40 pack-years. What is the most likely diagnosis and what is your investigation pathway?"
+
+NAC OSCE marking insight in every mechanism field:
+- What the examiner's checklist includes
+- What earns full marks vs partial marks vs fail
+- The exact phrases and behaviours that score points
+- Common mistakes that cause candidates to fail this station type
+
+NAC OSCE system categories: History Taking|Physical Examination|Communication Skills|Emergency Management|Clinical Reasoning|Breaking Bad News|Informed Consent|Patient Education
+` : exam === 'MCCQE1' ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MCCQE1 — CANADIAN MEDICAL LICENSING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Rotate between MCC Official Prep style (3-5 sentence focused vignettes) and CanadaQBank style (5-8 sentence detailed scenarios with distractors). Canadian clinical context throughout — family medicine, walk-in clinic, ER, community hospital. Canadian Task Force screening guidelines. Questions end with: most appropriate next step, which investigation, when to refer, most likely diagnosis, or initial treatment.
+
+Answer includes: specific correct answer, why it is correct, why the most tempting wrong answer is wrong, mnemonic if one exists.
+` : `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+USMLE ${exam} — UNITED STATES MEDICAL LICENSING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write full clinical vignettes (4-6 sentences) with exact lab values and normal ranges, specific demographics, and one focused question. Rotate question types: enzyme deficiency, most likely diagnosis, mechanism, next step, expected lab finding, distinguishing feature. Answer includes the direct answer, key recognisable features, and mnemonic written in full.
+`}
 
 ═══════════════════════════════════════════
-ANSWER FORMAT
+MECHANISM FIELD — REQUIRED FOR ALL EXAMS
 ═══════════════════════════════════════════
-Line 1: The correct answer — direct and specific (e.g. "Levothyroxine 50 mcg orally once daily" not just "thyroid replacement")
-Line 2: Why this answer is correct — 2-3 key clinical features from the stem that point to it
-Line 3: Why the most tempting wrong answer is wrong — this is what separates good students from great ones
-Line 4: Mnemonic if one exists — written out in full so it makes sense
+For clinical exams (USMLE, MCCQE1, NAC OSCE): 10+ sentences explaining the biology from normal physiology to bedside findings, using plain language with every term explained before it is used.
 
-═══════════════════════════════════════════
-MECHANISM FIELD — NON-NEGOTIABLE DEPTH
-═══════════════════════════════════════════
-
-This is not a summary. This is a story told in plain language where every sentence leads logically to the next. A clerk on their first day of internal medicine should be able to read this and genuinely understand what is happening in the body.
-
-STEP 1 — WHAT IS THIS THING NORMALLY?
-Start from zero. What is this organ, enzyme, protein, or pathway? What is its normal job? Use an analogy. Give its location, its substrate, its product, its physiological purpose. Pretend you are explaining it to an intelligent 18-year-old who has never studied medicine.
-
-STEP 2 — WHAT BREAKS AND WHAT HAPPENS IMMEDIATELY?
-What is the exact defect? What reaction fails? What builds up because it cannot be processed? What is depleted because it cannot be produced? Name the molecules but explain each one.
-
-STEP 3 — WHY DOES THE ACCUMULATION OR DEPLETION CAUSE HARM?
-This is where most explanations fail. Do not say "causes damage." Explain the actual mechanism: does it block mitochondria, form crystals, trigger inflammation, disrupt membranes, compete with a receptor? Why are those specific cells or organs affected and not others?
-
-STEP 4 — HOW DOES THIS DAMAGE REACH THE ORGANS?
-Walk through the progression from molecular to tissue to organ. Which organ is affected first and why? What does the damage look like? Name the part of the organ, the type of cell, the anatomical pathway.
-
-STEP 5 — HOW DOES EACH SYMPTOM AND SIGN IN THE QUESTION STEM ARISE?
-Take each clinical finding from the vignette and trace it back to a specific biological event. Every single finding must be explained — not grouped together. If there is a murmur, explain why that murmur has that quality. If there is a rash, explain why it is in that distribution. If there is a reflex change, explain which part of the nervous system is affected and why.
-
-MINIMUM: 10 sentences. No jargon without prior explanation. No passive voice hiding the mechanism ("the enzyme is inhibited" — by what, how, why does that matter?).
-
-FINAL CHECK: Ask yourself — "Could a first-year medical student who just started clerkship read this and explain it on ward rounds without having studied this topic before?" If not, rewrite it.
+For OET: Explain the language skill, the exam criteria being tested, the scoring rubric, and model responses. Minimum 6 sentences.
 
 ${di}
 
 ═══════════════════════════════════════════
-OUTPUT FORMAT
+OUTPUT
 ═══════════════════════════════════════════
-Return ONLY a valid JSON array. No markdown. No backticks. No text before or after:
+Return ONLY valid JSON array. No markdown. No backticks. No text before or after:
 [{
-  "question": "Full clinical vignette in MCC or CanadaQBank style with specific numbers and Canadian context",
-  "answer": "Specific correct answer\nWhy this answer — key features from the stem\nWhy the tempting wrong answer is wrong\nMnemonic written out in full if one exists",
-  "mechanism": "10+ sentences in plain language. Step 1: normal physiology with analogy. Step 2: what breaks and what accumulates or is depleted. Step 3: why that specific substance harms those specific cells. Step 4: organ damage pathway. Step 5: each symptom traced to a biological cause.",
-  "topic": "System — Specific Subtopic (e.g. Cardiology — Aortic Stenosis Management)",
-  "system": "Cardiology|Respirology|Gastroenterology|Nephrology|Neurology|Endocrinology|Hematology|Infectious Disease|Rheumatology|Dermatology|Psychiatry|Obstetrics|Gynaecology|Paediatrics|Surgery|Emergency Medicine|Family Medicine|Pharmacology|Biochemistry|Immunology",
+  "question": "Full scenario, vignette, language task, or station prompt appropriate to the exam",
+  "answer": "Correct answer with explanation — format varies by exam as described above",
+  "mechanism": "Deep explanation of the concept, skill, or scoring criteria — plain language throughout",
+  "topic": "Specific subtopic (e.g. Cardiology — Aortic Stenosis, OET Writing — Referral Letters, NAC OSCE — Breaking Bad News)",
+  "system": "System or OET/OSCE category as defined above",
   "difficulty": "easy|medium|hard",
   "exam": "${exam}",
-  "buzzwords": "3-6 classic recognisable terms or findings for this condition"
+  "buzzwords": "3-6 key terms, phrases, or criteria for this card"
 }]`;
 
 }
@@ -925,8 +931,8 @@ function rdDecks(){
   const g=document.getElementById('decks-g');
   const sb=document.getElementById('ar-status');if(sb)sb.textContent='Auto-refresh: '+getARStatus();
   if(!G.decks.length){g.innerHTML='<div class="empty"><div class="eico">📚</div><h4>No decks yet</h4><p>Upload a file or paste text to create your first deck</p></div>';return;}
-  const ico={'USMLE Step 1':'🧬','USMLE Step 2CK':'🩺','USMLE Step 3':'🏥','MCCQE1':'🍁'};
-  const clr={'USMLE Step 1':'rgba(59,130,246,.15)','USMLE Step 2CK':'rgba(16,185,129,.15)','USMLE Step 3':'rgba(139,92,246,.15)','MCCQE1':'rgba(245,158,11,.15)'};
+  const ico={'USMLE Step 1':'🧬','USMLE Step 2CK':'🩺','USMLE Step 3':'🏥','MCCQE1':'🍁','OET':'📝','NAC OSCE':'🩻'};
+  const clr={'USMLE Step 1':'rgba(59,130,246,.15)','USMLE Step 2CK':'rgba(16,185,129,.15)','USMLE Step 3':'rgba(139,92,246,.15)','MCCQE1':'rgba(245,158,11,.15)','OET':'rgba(236,72,153,.15)','NAC OSCE':'rgba(20,184,166,.15)'};
   g.innerHTML=G.decks.map(d=>{
     const due=d.cards.filter(c=>new Date(c.due)<=new Date()).length;
     const mas=d.cards.filter(c=>c.mastery>=3).length;
@@ -1032,8 +1038,6 @@ function rdBrowse(){
   if(G.ad)cards=cards.filter(c=>c.di===G.ad);
   if(G.ae)cards=cards.filter(c=>c.exam===G.ae);
   if(q)cards=cards.filter(c=>c.question.toLowerCase().includes(q)||(c.topic||'').toLowerCase().includes(q)||(c.buzzwords||'').toLowerCase().includes(q)||(c.system||'').toLowerCase().includes(q));
-  // System filter from topic sidebar click
-  if(G.af_sys)cards=cards.filter(c=>(c.system||'').toLowerCase()===G.af_sys.toLowerCase()||(c.topic||'').toLowerCase().includes(G.af_sys.toLowerCase()));
   if(G.af==='easy')cards=cards.filter(c=>c.difficulty==='easy');
   else if(G.af==='medium')cards=cards.filter(c=>c.difficulty==='medium');
   else if(G.af==='hard')cards=cards.filter(c=>c.difficulty==='hard');
@@ -1050,184 +1054,12 @@ function rdBrowse(){
       +'<button class="edit-ic" onclick="event.stopPropagation();editCard(\''+c.id+'\')" title="Edit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></div>';
   }).join('');
 }
-function rdTopics(){} // now handled by dropdown
-
-// ── UNIFIED SEARCH + DROPDOWN ──
-let _ddOpen = false;
-
-function buildDropdownItems(query){
-  const all = aC();
-  const q = (query||'').toLowerCase().trim();
-
-  // Collect systems with counts
-  const sysCnt = {};
-  all.forEach(c => {
-    const s = c.system||'General';
-    sysCnt[s] = (sysCnt[s]||0) + 1;
-  });
-
-  // Collect deck names with counts
-  const deckCnt = {};
-  G.decks.forEach(d => { if(d.cards.length) deckCnt[d.name] = d.cards.length; });
-
-  let html = '';
-
-  if(!q){
-    // Show all systems and all decks
-    const systems = Object.entries(sysCnt).sort((a,b)=>b[1]-a[1]);
-    if(systems.length){
-      html += '<div class="dd-section">Topics</div>';
-      html += systems.map(([s,n]) => {
-        const act = G.af_sys === s;
-        return `<div class="dd-item${act?' act':''}" onclick="pickTopic('sys','${s.replace(/'/g,"\'")}')"><span>${xe(s)}</span><span class="dd-cnt">${n}</span></div>`;
-      }).join('');
-    }
-    const decks = Object.entries(deckCnt);
-    if(decks.length){
-      html += '<div class="dd-section" style="margin-top:.25rem">Decks</div>';
-      html += decks.map(([name,n]) => {
-        const d = G.decks.find(x=>x.name===name);
-        const act = G.ad === (d&&d.id);
-        return `<div class="dd-item${act?' act':''}" onclick="pickTopic('deck','${(d&&d.id)||''}')"><span>${xe(name)}</span><span class="dd-cnt">${n}</span></div>`;
-      }).join('');
-    }
-  } else {
-    // Filter by query
-    const matchSys = Object.entries(sysCnt).filter(([s])=>s.toLowerCase().includes(q));
-    const matchDeck = G.decks.filter(d=>d.name.toLowerCase().includes(q)&&d.cards.length);
-    // Text search results count
-    const matchCards = all.filter(card =>
-      card.question.toLowerCase().includes(q)||
-      (card.topic||'').toLowerCase().includes(q)||
-      (card.buzzwords||'').toLowerCase().includes(q)||
-      (card.system||'').toLowerCase().includes(q)
-    ).length;
-
-    if(matchSys.length){
-      html += '<div class="dd-section">Topics</div>';
-      html += matchSys.sort((a,b)=>b[1]-a[1]).map(([s,n])=>{
-        const act = G.af_sys === s;
-        return `<div class="dd-item${act?' act':''}" onclick="pickTopic('sys','${s.replace(/'/g,"\'")}')"><span>${xe(s)}</span><span class="dd-cnt">${n}</span></div>`;
-      }).join('');
-    }
-    if(matchDeck.length){
-      html += '<div class="dd-section" style="margin-top:.25rem">Decks</div>';
-      html += matchDeck.map(d=>{
-        const act = G.ad === d.id;
-        return `<div class="dd-item${act?' act':''}" onclick="pickTopic('deck','${d.id}')"><span>${xe(d.name)}</span><span class="dd-cnt">${d.cards.length}</span></div>`;
-      }).join('');
-    }
-    if(matchCards > 0 || (!matchSys.length && !matchDeck.length)){
-      html += `<div class="dd-section" style="margin-top:.25rem">Search</div>`;
-      html += `<div class="dd-item" onclick="runTextSearch()" style="color:var(--acc)"><span>Search "<strong>${xe(query)}</strong>" in all cards</span><span class="dd-cnt">${matchCards}</span></div>`;
-    }
-  }
-
-  if(!html) html = '<div style="padding:.875rem;font-size:.82rem;color:var(--mut);text-align:center">No results</div>';
-  return html;
+function rdTopics(){
+  const cnt={};aC().forEach(c=>{const t=c.system||'General';cnt[t]=(cnt[t]||0)+1;});
+  const l=document.getElementById('topic-list');
+  if(!Object.keys(cnt).length){l.innerHTML='<li style="font-size:.79rem;color:var(--mut);padding:.35rem 0">No topics yet</li>';return;}
+  l.innerHTML=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,n])=>'<li class="titem" onclick="srchTopic(\''+xe(t)+'\')"><span>'+xe(t)+'</span><span class="tcnt">'+n+'</span></li>').join('');
 }
-
-function showDropdown(){
-  const dd = document.getElementById('topic-dropdown');
-  const inner = document.getElementById('dropdown-inner');
-  if(!dd||!inner) return;
-  inner.innerHTML = buildDropdownItems(document.getElementById('srch-in').value);
-  dd.style.display = 'block';
-  _ddOpen = true;
-}
-
-function hideDropdown(){
-  const dd = document.getElementById('topic-dropdown');
-  if(dd) dd.style.display = 'none';
-  _ddOpen = false;
-}
-
-function onSrchInput(){
-  const val = document.getElementById('srch-in').value;
-  const clearBtn = document.getElementById('srch-clear');
-  if(clearBtn) clearBtn.style.display = val ? 'block' : 'none';
-  showDropdown();
-  // Don't run card filter while dropdown is open — wait for selection
-}
-
-function pickTopic(type, val){
-  const inp = document.getElementById('srch-in');
-  if(type === 'sys'){
-    G.af_sys = val;
-    G.ad = null;
-    G.as = '';
-    if(inp) inp.value = val;
-    const clearBtn = document.getElementById('srch-clear');
-    if(clearBtn) clearBtn.style.display = 'block';
-  } else if(type === 'deck'){
-    G.ad = val;
-    G.af_sys = '';
-    G.as = '';
-    const deck = G.decks.find(d=>d.id===val);
-    if(inp) inp.value = deck ? deck.name : '';
-    const clearBtn = document.getElementById('srch-clear');
-    if(clearBtn) clearBtn.style.display = 'block';
-  }
-  hideDropdown();
-  updActivePill();
-  rdBrowse();
-}
-
-function runTextSearch(){
-  G.as = document.getElementById('srch-in').value;
-  G.af_sys = '';
-  G.ad = null;
-  hideDropdown();
-  updActivePill();
-  rdBrowse();
-}
-
-function clearSrch(){
-  const inp = document.getElementById('srch-in');
-  if(inp) inp.value = '';
-  const clearBtn = document.getElementById('srch-clear');
-  if(clearBtn) clearBtn.style.display = 'none';
-  G.as = ''; G.af_sys = ''; G.ad = null;
-  hideDropdown();
-  updActivePill();
-  rdBrowse();
-}
-
-function updActivePill(){
-  const pill = document.getElementById('active-filter-pill');
-  if(!pill) return;
-  let label = '';
-  if(G.af_sys) label = '📂 ' + G.af_sys;
-  else if(G.ad){ const d=G.decks.find(x=>x.id===G.ad); if(d) label='🗂 '+d.name; }
-  else if(G.as) label = '🔍 "' + G.as + '"';
-  else if(G.ae) label = '🎯 ' + G.ae;
-  if(label){
-    pill.style.display = 'flex';
-    pill.innerHTML = '<span style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);border-radius:100px;padding:3px 10px 3px 8px;font-size:.76rem;color:var(--acc);display:flex;align-items:center;gap:5px">'
-      + label
-      + '<button onclick="clearSrch()" style="background:none;border:none;color:var(--acc);cursor:pointer;padding:0;line-height:1;font-size:1rem">×</button></span>';
-  } else {
-    pill.style.display = 'none';
-    pill.innerHTML = '';
-  }
-}
-
-// Close dropdown when clicking outside
-document.addEventListener('click', e => {
-  const wrap = document.getElementById('browse-srch-wrap');
-  if(wrap && !wrap.contains(e.target)) hideDropdown();
-});
-
-function srchTopic(t){
-  // Legacy — now handled by pickTopic
-  pickTopic('sys', t);
-}
-
-function filterCards(){
-  // Called by oninput — now handled by onSrchInput
-  onSrchInput();
-}
-
 function rdDue(){
   const due=aC().filter(c=>new Date(c.due)<=new Date());
   document.getElementById('due-btn').style.display=due.length?'flex':'none';
@@ -1254,9 +1086,9 @@ function rdStats(){
   sp.innerHTML=Object.entries(sys).sort((a,b)=>b[1].t-a[1].t).map(([s,v])=>{const pct=Math.round(v.m/v.t*100),col=cols[s]||'var(--acc)';return '<div style="margin-bottom:.875rem"><div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:4px"><span style="font-weight:500">'+xe(s)+'</span><span style="color:'+col+';font-weight:600">'+v.m+'/'+v.t+'</span></div><div style="height:6px;background:var(--bdr);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:3px;transition:width .5s"></div></div></div>';}).join('');
 }
 function updBadge(){const n=aC().filter(c=>new Date(c.due)<=new Date()).length;const b=document.getElementById('due-n');b.textContent=n||'';b.style.display=n?'inline':'none';}
-function setChip(el,v){document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');G.af=v;G.af_sys='';rdBrowse();}
-function filterCards(){G.as=document.getElementById('srch-in').value;G.af_sys='';rdBrowse();}
-function srchTopic(t){document.getElementById('srch-in').value='';G.as='';G.af_sys=t;rdBrowse();}
+function setChip(el,v){document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');G.af=v;rdBrowse();}
+function filterCards(){G.as=document.getElementById('srch-in').value;rdBrowse();}
+function srchTopic(t){document.getElementById('srch-in').value=t;G.as=t;rdBrowse();}
 
 // ══ STUDY — SM-2 SPACED REPETITION ══
 function startStudy(mode,did){
