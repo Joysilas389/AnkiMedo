@@ -1029,7 +1029,7 @@ function setStep(n){
 
 // ══ RENDER HELPERS ══
 function xe(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
-function aC(){return G.decks.flatMap(d=>d.cards.map(c=>({...c,dn:d.name,di:d.id})));}
+function aC(){return G.decks.flatMap(d=>d.cards.map(c=>({...c,dn:d.name,di:d.id}))).sort((a,b)=>{const ta=parseInt((a.id||'0').split('_')[0])||0,tb=parseInt((b.id||'0').split('_')[0])||0;return tb-ta;});}
 
 // ══ DECKS ══
 function rdDecks(){
@@ -1038,7 +1038,7 @@ function rdDecks(){
   if(!G.decks.length){g.innerHTML='<div class="empty"><div class="eico">📚</div><h4>No decks yet</h4><p>Upload a file or paste text to create your first deck</p></div>';return;}
   const ico={'USMLE Step 1':'🧬','USMLE Step 2CK':'🩺','USMLE Step 3':'🏥','MCCQE1':'🍁','OET':'📝','NAC OSCE':'🩻'};
   const clr={'USMLE Step 1':'rgba(59,130,246,.15)','USMLE Step 2CK':'rgba(16,185,129,.15)','USMLE Step 3':'rgba(139,92,246,.15)','MCCQE1':'rgba(245,158,11,.15)','OET':'rgba(236,72,153,.15)','NAC OSCE':'rgba(20,184,166,.15)'};
-  g.innerHTML=G.decks.map(d=>{
+  g.innerHTML=[...G.decks].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).map(d=>{
     const due=d.cards.filter(c=>new Date(c.due)<=new Date()).length;
     const mas=d.cards.filter(c=>c.mastery>=3).length;
     const pct=d.cards.length?Math.round(mas/d.cards.length*100):0;
@@ -1589,5 +1589,4 @@ if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>if(typeof pdfjsLib!=='undefined')pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';</script>
 </body>
-</html>+(d.cards.filter(x=>(x.mastery||0)<2).length?'<button class="btn-o" style="border-color:rgba(239,68,68,.45);color:var(--red);padding:.55rem .75rem" onclick="event.stopPropagation();startRevision(\''+d.id+'\')" title="Revise weak cards"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></button>':'')
-        
+</html>
