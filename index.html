@@ -263,9 +263,9 @@ button{font-family:var(--fb)}
         <h1>Turn any file into<br><span class="grad">intelligent flashcards</span></h1>
         <p>Upload PDF, DOCX, screenshots, photos — or paste any text. Claude builds deep exam-specific flashcards that explain the <em>why</em> from first principles, not just what to memorise.</p>
         <div class="upzone" id="upzone">
-          <input type="file" id="fin" accept=".pdf,.doc,.docx,image/*" multiple onchange="handleFiles(this.files)">
+          <input type="file" id="fin" accept=".pdf,.doc,.docx,.apkg,.txt,image/*" multiple onchange="handleFiles(this.files)">
           <div class="up-ico">📄</div><h3>Drop files here</h3><p>or tap to browse</p>
-          <div class="ft-row"><span class="ft-tag">📄 PDF</span><span class="ft-tag">📝 DOCX</span><span class="ft-tag">🖼️ JPG/PNG</span><span class="ft-tag">📸 Screenshots</span></div>
+          <div class="ft-row"><span class="ft-tag">📄 PDF</span><span class="ft-tag">📝 DOCX</span><span class="ft-tag">🖼️ JPG/PNG</span><span class="ft-tag">📸 Screenshots</span><span class="ft-tag">🃏 .apkg Anki</span></div>
         </div>
         <div class="or-div"><div class="or-line"></div><span class="or-txt">OR</span><div class="or-line"></div></div>
         <div>
@@ -698,11 +698,245 @@ function setupDrop(){
 }
 async function handleFiles(fl){
   const files=Array.from(fl);if(!files.length)return;
+  // .apkg doesn't need API key — it's a direct import
+  const apkgFiles=files.filter(f=>f.name.toLowerCase().endsWith('.apkg'));
+  if(apkgFiles.length){await handleApkg(apkgFiles[0]);return;}
   if(!G.apiKey){toast('Set API key in Settings first','e');nav('settings');return;}
   const imgs=files.filter(f=>f.type.startsWith('image/')),docs=files.filter(f=>!f.type.startsWith('image/'));
   if(imgs.length)await handleImgs(imgs);
   else if(docs.length)await handleDoc(docs[0]);
 }
+async function handleApkg(file){
+  showProc();
+  setStep(1);
+
+  const nm=file.name.replace(/\.apkg$/i,'');
+  const fileMB=(file.size/1024/1024).toFixed(1);
+
+  // Warn if very large
+  if(file.size>200*1024*1024){
+    const proceed=confirm(`This file is ${fileMB}MB. AnkiMedo will extract only the card text database (usually 5-20MB inside the zip). Large files may take 30-60 seconds. Continue?`);
+    if(!proceed){hideProc();return;}
+  }
+
+  const exam=await pickExamForImport(nm);
+  if(!exam){hideProc();return;}
+
+  try{
+    setStep(2);
+    const el2=document.getElementById('ps2');
+    if(el2&&el2.lastChild)el2.lastChild.textContent=' Unzipping — extracting card database…';
+
+    // Load sql.js first (before touching the zip)
+    let SQL;
+    try{
+      SQL=await initSqlJs({
+        locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}`
+      });
+    }catch(e){
+      hideProc();
+      toast('Could not load SQL engine. Check your connection.','e');
+      return;
+    }
+
+    // Unzip — JSZip streams lazily so the full 268MB isn't held in memory all at once
+    const zip=await JSZip.loadAsync(file,{
+      checkCRC32:false // skip CRC for speed on large files
+    });
+
+    // The SQLite database is always one of these filenames
+    const dbEntry=zip.file('collection.anki21')||zip.file('collection.anki2');
+    if(!dbEntry){
+      hideProc();
+      toast('No card database found in this .apkg file','e');
+      return;
+    }
+
+    setStep(3);
+    const el3=document.getElementById('ps3');
+    if(el3&&el3.lastChild)el3.lastChild.textContent=' Reading card database…';
+
+    // Extract ONLY the SQLite file — ignore all media (images/audio = the bulk of 268MB)
+    const dbBuf=await dbEntry.async('arraybuffer');
+    const dbMB=(dbBuf.byteLength/1024/1024).toFixed(1);
+    console.log(`SQLite database extracted: ${dbMB}MB`);
+
+    const db=new SQL.Database(new Uint8Array(dbBuf));
+
+    // Get total card count first
+    let totalCount=0;
+    try{
+      const countRes=db.exec('SELECT COUNT(*) FROM notes');
+      totalCount=countRes[0]?.values[0]?.[0]||0;
+    }catch(e){
+      hideProc();toast('Cannot read this Anki format: '+e.message,'e');return;
+    }
+
+    if(totalCount===0){hideProc();toast('No cards found in this deck','e');return;}
+
+    setStep(4);
+    const el4=document.getElementById('ps4');
+    const BATCH=500;
+    const allCards=[];
+    let offset=0;
+
+    // Process in batches — avoids holding all rows in memory simultaneously
+    while(offset<totalCount){
+      if(el4&&el4.lastChild)el4.lastChild.textContent=` Importing cards ${offset+1}–${Math.min(offset+BATCH,totalCount)} of ${totalCount}…`;
+
+      const rows=db.exec(`SELECT flds,tags,id FROM notes LIMIT ${BATCH} OFFSET ${offset}`);
+      if(!rows.length||!rows[0].values.length)break;
+
+      rows[0].values.forEach((row,i)=>{
+        const flds=row[0]||'';
+        const tags=(row[1]||'').trim();
+        const fields=flds.split('');
+        const strip=html=>(html||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim();
+
+        const front=strip(fields[0]||'');
+        const back=strip(fields[1]||'');
+        const extra=strip(fields[2]||'');
+        if(!front||!back)return;
+
+        const tagLower=tags.toLowerCase()+' '+front.toLowerCase()+' '+back.toLowerCase();
+        const system=detectSystem(tagLower);
+        const diff=tagLower.includes('hard')||tagLower.includes('difficult')?'hard':
+                   tagLower.includes('easy')||tagLower.includes('basic')?'easy':'medium';
+
+        allCards.push({
+          id:Date.now()+'_'+(offset+i),
+          question:front,
+          answer:back,
+          mechanism:extra||'',
+          topic:system+' — '+nm,
+          system,
+          difficulty:diff,
+          exam,
+          buzzwords:tags.split(/\s+/).filter(t=>t&&!t.startsWith('::')).slice(0,5).join(', '),
+          mastery:0,interval:1,ef:2.5,
+          due:new Date().toISOString(),rev:0
+        });
+      });
+
+      offset+=BATCH;
+      // Yield to browser to prevent UI freeze
+      await new Promise(r=>setTimeout(r,0));
+    }
+
+    db.close();
+
+    if(!allCards.length){hideProc();toast('No valid cards parsed','e');return;}
+
+    setStep(5);
+    // For very large decks, split into sub-decks by system for better organisation
+    if(allCards.length>500){
+      const bySystem={};
+      allCards.forEach(card=>{
+        const s=card.system;
+        if(!bySystem[s])bySystem[s]=[];
+        bySystem[s].push(card);
+      });
+      const systems=Object.keys(bySystem);
+      systems.forEach(sys=>{
+        G.decks.push({
+          id:''+Date.now()+Math.random(),
+          name:nm+' — '+sys,
+          exam,
+          createdAt:new Date().toISOString(),
+          cards:bySystem[sys],
+          source:'anki'
+        });
+      });
+      save();hideProc();
+      toast('✅ '+allCards.length+' cards imported across '+systems.length+' decks by system','s');
+    } else {
+      G.decks.push({
+        id:''+Date.now(),
+        name:nm+' (Anki Import)',
+        exam,
+        createdAt:new Date().toISOString(),
+        cards:allCards,
+        source:'anki'
+      });
+      save();hideProc();
+      toast('✅ '+allCards.length+' cards imported from "'+nm+'"','s');
+    }
+
+    rdDecks();rdBrowse();rdStats();updBadge();nav('library');
+
+  }catch(err){
+    hideProc();
+    console.error('APKG import error:',err);
+    if(err.message&&err.message.includes('memory')){
+      toast('File too large for browser memory. Export as .txt from Anki instead.','e');
+    } else {
+      toast('Import error: '+err.message,'e');
+    }
+  }
+}
+
+
+function detectSystem(text){
+  const map=[
+    ['cardiology','cardiovascular','heart','ecg','arrhythmia','avnrt','afib','mi ','stemi'],
+    ['respirology','pulmon','asthma','copd','pneumonia','lung','pleural'],
+    ['neurology','neuro','stroke','seizure','epilepsy','parkinson','dementia','headache'],
+    ['gastroenterology','gi ','bowel','liver','hepat','pancrea','colitis','crohn'],
+    ['nephrology','renal','kidney','glomerul','dialysis','aki ','ckd'],
+    ['endocrinology','diabet','thyroid','adrenal','insulin','hba1c','hypoglyc'],
+    ['hematology','anemia','bleed','coagul','platelet','lymphom','leukemia'],
+    ['infectious disease','infect','antibiotic','sepsis','hiv','pneumocystis','meningitis'],
+    ['psychiatry','depress','anxiety','psychos','bipolar','schizo','mania','suicide'],
+    ['pharmacology','drug','receptor','inhibit','agonist','antagonist','dose'],
+    ['obstetrics','pregnan','labour','postpartum','prenatal','trimester','eclampsia'],
+    ['gynaecology','ovari','uterine','cervical','menstrual','amenorrhea','pcos'],
+    ['paediatrics','child','infant','neonat','pediatric','development'],
+    ['surgery','surgical','appendix','cholecystect','hernia','bowel obstruct'],
+    ['rheumatology','arthritis','lupus','sle ','gout','fibromyalgia','ra '],
+    ['dermatology','skin','rash','eczema','psoriasis','melanoma'],
+    ['emergency medicine','emergency','trauma','resuscitat','triage','shock'],
+    ['family medicine','screening','prevention','health promotion','chronic disease'],
+    ['phelo','ethics','consent','legal','indigenous','population health','public health'],
+  ];
+  for(const [system,...keywords] of map){
+    if(keywords.some(kw=>text.includes(kw)))return system.charAt(0).toUpperCase()+system.slice(1);
+  }
+  return 'General Medicine';
+}
+
+function pickExamForImport(deckName){
+  return new Promise(resolve=>{
+    // Create a simple modal to pick exam
+    const existing=document.getElementById('exam-pick-modal');
+    if(existing)existing.remove();
+
+    const modal=document.createElement('div');
+    modal.id='exam-pick-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:flex;align-items:flex-end;justify-content:center';
+    modal.innerHTML=`
+      <div style="background:var(--sur);border-radius:20px 20px 0 0;padding:1.5rem;width:100%;max-width:500px;max-height:80vh;overflow-y:auto">
+        <div style="width:38px;height:4px;background:var(--bdr2);border-radius:2px;margin:0 auto 1.125rem"></div>
+        <div style="font-family:var(--fh);font-size:1rem;font-weight:700;margin-bottom:.375rem">Import Anki Deck</div>
+        <div style="font-size:.82rem;color:var(--mut);margin-bottom:1.25rem">Which exam is "<strong style="color:var(--txt)">${deckName}</strong>" for?</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          ${['MCCQE1','USMLE Step 1','USMLE Step 2CK','USMLE Step 3','OET','NAC OSCE'].map(e=>`
+            <button onclick="document.getElementById('exam-pick-modal').remove();window._examPickResolve('${e}')"
+              style="background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:.75rem 1rem;text-align:left;color:var(--txt);font-family:var(--fb);font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:all .15s"
+              onmouseover="this.style.borderColor='var(--acc)'" onmouseout="this.style.borderColor='var(--bdr)'">
+              ${e}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>`).join('')}
+          <button onclick="document.getElementById('exam-pick-modal').remove();window._examPickResolve(null)"
+            style="background:none;border:none;color:var(--mut);font-family:var(--fb);font-size:.82rem;padding:.5rem;cursor:pointer;margin-top:.25rem">
+            Cancel
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    window._examPickResolve=resolve;
+  });
+}
+
 async function handleDoc(f){
   const isPdf=f.type==='application/pdf',isDocx=/\.docx?$/i.test(f.name);
   if(!isPdf&&!isDocx){toast('Use PDF, DOCX, or image files','e');return;}
@@ -2372,6 +2606,7 @@ init().then(()=>setTimeout(runAutoRefresh,5000)).catch(console.error);
 if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()));
 </script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>if(typeof pdfjsLib!=='undefined')pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';</script>
 </body>
