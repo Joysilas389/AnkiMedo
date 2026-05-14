@@ -603,21 +603,43 @@ let G={apiKey:'',decks:[],af:'all',as:'',af_sys:'',ae:null,ad:null,sq:[],si:0,fl
 
 // ══ INIT ══
 async function init(){
-  // Load settings from localStorage
+  // ── LOAD DATA: IndexedDB first, localStorage fallback/migration ──
   try{
-    const settings=localStorage.getItem('am_settings');
-    if(settings){const s=JSON.parse(settings);G={...G,...s};}
-  }catch(e){}
-  // Load decks from IndexedDB
-  try{
+    // Try IndexedDB first (new storage)
     const decks=await idbGet('decks');
-    if(decks&&Array.isArray(decks))G.decks=decks;
+    if(decks&&Array.isArray(decks)&&decks.length>0){
+      G.decks=decks;
+      console.log('Loaded',decks.length,'decks from IndexedDB');
+    } else {
+      // IndexedDB empty — try old localStorage format (migration)
+      const raw=localStorage.getItem('am_d');
+      if(raw){
+        try{
+          const p=JSON.parse(raw);
+          const{apiKey:_,...r}=p;
+          G={...G,...r};
+          console.log('Migrated',G.decks.length,'decks from localStorage to IndexedDB');
+          // Migrate to IndexedDB so future saves go there
+          await idbSet('decks',G.decks);
+          // Save settings separately
+          const{apiKey:__,decks:___,...settings}=G;
+          try{localStorage.setItem('am_settings',JSON.stringify(settings));}catch(e){}
+        }catch(e){console.warn('localStorage parse failed:',e);}
+      } else {
+        // Try new-format settings
+        try{
+          const settings=localStorage.getItem('am_settings');
+          if(settings){const s=JSON.parse(settings);G={...G,...s};}
+        }catch(e){}
+      }
+    }
   }catch(e){
-    // Fallback: try old localStorage format
+    console.warn('IndexedDB load failed, trying localStorage:',e);
+    // Full fallback to localStorage
     try{
       const raw=localStorage.getItem('am_d');
-      if(raw){const p=JSON.parse(raw);if(p.decks)G.decks=p.decks;}
-    }catch(e2){}
+      if(raw){const p=JSON.parse(raw);const{apiKey:_,...r}=p;G={...G,...r};}
+    }catch(e2){console.warn('localStorage fallback also failed:',e2);}
   }
   const k=await decK();
   if(k){G.apiKey=k;document.getElementById('api-in').value='••••••••••••••••••••';document.getElementById('enc-badge').style.display='inline-flex';}
@@ -2720,4 +2742,4 @@ if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>if(typeof pdfjsLib!=='undefined')pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';</script>
 </body>
-</html>redeploy
+</html>
