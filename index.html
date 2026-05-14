@@ -603,8 +603,22 @@ let G={apiKey:'',decks:[],af:'all',as:'',af_sys:'',ae:null,ad:null,sq:[],si:0,fl
 
 // ══ INIT ══
 async function init(){
-  const raw=localStorage.getItem('am_d');
-  if(raw){try{const p=JSON.parse(raw);const{apiKey:_,...r}=p;G={...G,...r};}catch{}}
+  // Load settings from localStorage
+  try{
+    const settings=localStorage.getItem('am_settings');
+    if(settings){const s=JSON.parse(settings);G={...G,...s};}
+  }catch(e){}
+  // Load decks from IndexedDB
+  try{
+    const decks=await idbGet('decks');
+    if(decks&&Array.isArray(decks))G.decks=decks;
+  }catch(e){
+    // Fallback: try old localStorage format
+    try{
+      const raw=localStorage.getItem('am_d');
+      if(raw){const p=JSON.parse(raw);if(p.decks)G.decks=p.decks;}
+    }catch(e2){}
+  }
   const k=await decK();
   if(k){G.apiKey=k;document.getElementById('api-in').value='••••••••••••••••••••';document.getElementById('enc-badge').style.display='inline-flex';}
   document.getElementById('cpc').value=G.cpc||4;
@@ -617,7 +631,61 @@ async function init(){
   });
   updDot();rdDecks();rdBrowse();rdDue();rdStats();updBadge();setupDrop();updARUI();updExamModeUI();
 }
-function save(){const{apiKey:_,...s}=G;localStorage.setItem('am_d',JSON.stringify(s));}
+// ══ INDEXEDDB STORAGE (replaces localStorage for large data) ══
+const DB_NAME='AnkiMedoDB',DB_VERSION=1,STORE='ankimedo';
+let _db=null;
+
+async function openDB(){
+  if(_db)return _db;
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open(DB_NAME,DB_VERSION);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE);
+    };
+    req.onsuccess=e=>{_db=e.target.result;res(_db);};
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+
+async function idbSet(key,val){
+  const db=await openDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put(val,key);
+    tx.oncomplete=()=>res();
+    tx.onerror=e=>rej(e.target.error);
+  });
+}
+
+async function idbGet(key){
+  const db=await openDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE,'readonly');
+    const req=tx.objectStore(STORE).get(key);
+    req.onsuccess=e=>res(e.target.result);
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+
+// save() is now async — stores decks in IndexedDB, lightweight settings in localStorage
+async function save(){
+  const{apiKey:_,decks,...settings}=G;
+  // Lightweight settings (no images) → localStorage as fallback
+  try{localStorage.setItem('am_settings',JSON.stringify(settings));}catch(e){}
+  // Decks (may contain images) → IndexedDB
+  try{
+    await idbSet('decks',decks);
+  }catch(e){
+    console.error('IndexedDB save failed:',e);
+    // Fallback: try localStorage with images stripped for settings only
+    toast('Storage warning: '+e.message,'e');
+  }
+}
+
+// Synchronous save alias for places that call save() without await
+// Fires async save and ignores the promise (best-effort)
+function saveSync(){save().catch(e=>console.error('saveSync failed:',e));}
 
 // ══ THEME ══
 function togTheme(){const on=document.body.classList.toggle('light');localStorage.setItem('am_theme',on?'light':'dark');on?setSunIco():setMoonIco();}
@@ -682,7 +750,7 @@ async function handlePaste(){
     setStep(5);
     if(!all.length){hideProc();toast('No cards generated — try pasting more detailed text','e');return;}
     G.decks.push({id:''+Date.now(),name,exam,createdAt:new Date().toISOString(),cards:all,source:'paste'});
-    save();hideProc();clearPaste();
+    saveSync();hideProc();clearPaste();
     if(_pasteOpen){_pasteOpen=true;togPaste();}
     toast('✅ '+all.length+' flashcards created','s');
     rdDecks();rdBrowse();updBadge();nav('library');
@@ -887,12 +955,12 @@ async function handleApkg(file){
           createdAt:new Date().toISOString(),cards,source:'anki'});
       });
       const sysCt=Object.keys(bySystem).length;
-      save();hideProc();
+      await save();hideProc();
       toast(`✅ ${allCards.length} cards · ${imgCount} images · ${sysCt} decks by system`,'s');
     } else {
       G.decks.push({id:''+Date.now(),name:nm+' (Anki Import)',exam,
         createdAt:new Date().toISOString(),cards:allCards,source:'anki'});
-      save();hideProc();
+      await save();hideProc();
       toast(`✅ ${allCards.length} cards · ${imgCount} images imported`,'s');
     }
 
@@ -981,7 +1049,7 @@ async function handleDoc(f){
     const cards=await genCards(ext,nm,exam);
     if(!cards.length){hideProc();toast('No cards generated — check API key','e');return;}
     G.decks.push({id:''+Date.now(),name:nm,exam,createdAt:new Date().toISOString(),cards});
-    save();hideProc();toast('✅ '+cards.length+' flashcards from "'+nm+'"','s');
+    saveSync();hideProc();toast('✅ '+cards.length+' flashcards from "'+nm+'"','s');
     rdDecks();rdBrowse();updBadge();nav('library');
   }catch(err){hideProc();toast('Error: '+err.message,'e');console.error(err);}
 }
@@ -1003,7 +1071,7 @@ async function handleImgs(files){
     }
     if(!all.length){hideProc();toast('No cards generated','e');return;}
     G.decks.push({id:''+Date.now(),name:nm,exam,createdAt:new Date().toISOString(),cards:all});
-    save();hideProc();toast('✅ '+all.length+' cards from '+files.length+' image'+(files.length>1?'s':''),'s');
+    saveSync();hideProc();toast('✅ '+all.length+' cards from '+files.length+' image'+(files.length>1?'s':''),'s');
     rdDecks();rdBrowse();updBadge();nav('library');
   }catch(err){hideProc();toast('Error: '+err.message,'e');console.error(err);}
 }
@@ -1422,20 +1490,20 @@ function rdDecks(){
   }).join('');
 }
 function openDeck(id){G.ae=null;G.ad=id;G.af_sys='';G.as='';const inp=document.getElementById('srch-in');if(inp)inp.value='';nav('browse');}
-function rnDeck(id){const d=G.decks.find(x=>x.id===id);if(!d)return;const n=window.prompt('Rename deck:',d.name);if(n&&n.trim()){d.name=n.trim();save();rdDecks();toast('Renamed','s');}}
-function delDeck(id){if(!confirm('Delete this deck and all its cards?'))return;G.decks=G.decks.filter(d=>d.id!==id);save();rdDecks();rdBrowse();rdStats();updBadge();toast('Deck deleted','i');}
-function clearEmpty(){const b=G.decks.length;G.decks=G.decks.filter(d=>d.cards&&d.cards.length>0);const r=b-G.decks.length;if(!r){toast('No empty decks','i');return;}save();rdDecks();rdStats();updBadge();toast('Removed '+r+' empty deck'+(r>1?'s':''),'s');}
+function rnDeck(id){const d=G.decks.find(x=>x.id===id);if(!d)return;const n=window.prompt('Rename deck:',d.name);if(n&&n.trim()){d.name=n.trim();saveSync();rdDecks();toast('Renamed','s');}}
+function delDeck(id){if(!confirm('Delete this deck and all its cards?'))return;G.decks=G.decks.filter(d=>d.id!==id);saveSync();rdDecks();rdBrowse();rdStats();updBadge();toast('Deck deleted','i');}
+function clearEmpty(){const b=G.decks.length;G.decks=G.decks.filter(d=>d.cards&&d.cards.length>0);const r=b-G.decks.length;if(!r){toast('No empty decks','i');return;}saveSync();rdDecks();rdStats();updBadge();toast('Removed '+r+' empty deck'+(r>1?'s':''),'s');}
 
 // ══ AUTO-REFRESH TOGGLES ══
-function togGlobal(){G.globalRefresh=G.globalRefresh===false?true:false;save();updARUI();toast(G.globalRefresh!==false?'🔄 Auto-refresh enabled':'⏸ Auto-refresh paused','i');}
-function togDeck(id){const d=G.decks.find(x=>x.id===id);if(!d)return;d.autoRefresh=d.autoRefresh===false?true:false;save();rdDecks();toast('"'+d.name+'" refresh '+(d.autoRefresh!==false?'enabled':'disabled'),'i');}
+function togGlobal(){G.globalRefresh=G.globalRefresh===false?true:false;saveSync();updARUI();toast(G.globalRefresh!==false?'🔄 Auto-refresh enabled':'⏸ Auto-refresh paused','i');}
+function togDeck(id){const d=G.decks.find(x=>x.id===id);if(!d)return;d.autoRefresh=d.autoRefresh===false?true:false;saveSync();rdDecks();toast('"'+d.name+'" refresh '+(d.autoRefresh!==false?'enabled':'disabled'),'i');}
 function togTopic(deckId,topic){
   const d=G.decks.find(x=>x.id===deckId);if(!d)return;
   if(!d.pausedTopics)d.pausedTopics=[];
   const idx=d.pausedTopics.indexOf(topic);
   if(idx===-1){d.pausedTopics.push(topic);toast('"'+topic+'" paused','i');}
   else{d.pausedTopics.splice(idx,1);toast('"'+topic+'" resumed','s');}
-  save();rdDecks();
+  saveSync();rdDecks();
 }
 function updARUI(){
   const btn=document.getElementById('tog-global');if(btn){const on=G.globalRefresh!==false;btn.className='tog '+(on?'on':'off');}
@@ -1473,7 +1541,7 @@ Return ONLY valid JSON array:
   try{
     const newCards=await callAPI([{role:'user',content:prompt}]);
     if(!newCards.length)return 0;
-    deck.cards.push(...newCards);deck.lastRefresh=new Date().toISOString();save();return newCards.length;
+    deck.cards.push(...newCards);deck.lastRefresh=new Date().toISOString();saveSync();return newCards.length;
   }catch(e){console.error('Auto-refresh failed:',deck.name,e.message);return 0;}
 }
 async function runAutoRefresh(){
@@ -1651,7 +1719,7 @@ function startStudy(mode,did){
   G.sq=shuffle([...cards]);G.si=0;G.sessionStats={forgot:0,hard:0,good:0,easy:0,total:0};document.getElementById('study').classList.add('on');G.flip=false;loadCard();
 }
 function studyOne(id){const c=aC().find(x=>x.id===id);if(!c)return;G.sq=[c];G.si=0;document.getElementById('study').classList.add('on');G.flip=false;loadCard();}
-function closeStudy(){document.getElementById('study').classList.remove('on');const rb=document.getElementById('revision-banner');if(rb)rb.remove();G.studyMode='normal';save();rdBrowse();rdDue();rdStats();updBadge();}
+function closeStudy(){document.getElementById('study').classList.remove('on');const rb=document.getElementById('revision-banner');if(rb)rb.remove();G.studyMode='normal';saveSync();rdBrowse();rdDue();rdStats();updBadge();}
 function loadCard(){
   const c=G.sq[G.si];
   if(!c){showSessionComplete();return;}
@@ -1717,7 +1785,7 @@ function rate(q){
   else if(q===1)G.sessionStats.hard++;
   else if(q===3)G.sessionStats.good++;
   else if(q===5)G.sessionStats.easy++;
-  save();G.si++;loadCard();
+  saveSync();G.si++;loadCard();
 }
 
 function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
@@ -1728,9 +1796,9 @@ function editCard(id){const c=aC().find(x=>x.id===id);if(!c)return;_eid=id;docum
 function saveEdit(){
   if(!_eid)return;
   for(const d of G.decks){const i=d.cards.findIndex(c=>c.id===_eid);if(i===-1)continue;d.cards[i].question=document.getElementById('eq').value.trim();d.cards[i].answer=document.getElementById('ea').value.trim();d.cards[i].mechanism=document.getElementById('em').value.trim();d.cards[i].buzzwords=document.getElementById('ebw').value.trim();d.cards[i].difficulty=document.getElementById('ediff').value;d.cards[i].system=document.getElementById('esys').value;break;}
-  save();closeModal();rdBrowse();rdDue();toast('Card updated','s');
+  saveSync();closeModal();rdBrowse();rdDue();toast('Card updated','s');
 }
-function delCard(){if(!_eid||!confirm('Delete this card?'))return;for(const d of G.decks){const i=d.cards.findIndex(c=>c.id===_eid);if(i===-1)continue;d.cards.splice(i,1);break;}save();closeModal();rdBrowse();rdDecks();rdStats();updBadge();toast('Card deleted','i');}
+function delCard(){if(!_eid||!confirm('Delete this card?'))return;for(const d of G.decks){const i=d.cards.findIndex(c=>c.id===_eid);if(i===-1)continue;d.cards.splice(i,1);break;}saveSync();closeModal();rdBrowse();rdDecks();rdStats();updBadge();toast('Card deleted','i');}
 
 // ══ QUIZ ══
 let QZ={cards:[],idx:0,score:0,answered:false,qn:10,diff:'all'};
@@ -1862,12 +1930,12 @@ async function saveKey(){
     await encK(raw);G.apiKey=raw;document.getElementById('api-in').value='••••••••••••••••••••';document.getElementById('enc-badge').style.display='inline-flex';toast('🔐 API key saved','s');
   }
   G.cpc=parseInt(document.getElementById('cpc').value)||4;G.dlv=document.getElementById('dlvl').value;G.foc=document.getElementById('foc').value;
-  save();updDot();if(masked)toast('Settings saved','s');
+  saveSync();updDot();if(masked)toast('Settings saved','s');
 }
 function togEye(){const i=document.getElementById('api-in'),ic=document.getElementById('eye-ic');if(i.type==='password'){i.type='text';ic.innerHTML='<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';}else{i.type='password';ic.innerHTML='<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';}}
 function updDot(){const dot=document.getElementById('api-dot'),txt=document.getElementById('api-txt');if(G.apiKey){dot.className='dot on';txt.textContent='API key active';}else{dot.className='dot';txt.textContent='API key not set';}}
 function exportData(){const blob=new Blob([JSON.stringify({decks:G.decks,exported:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ankimedo_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('Data exported','s');}
-function clearAll(){if(!confirm('Delete ALL decks and cards? This cannot be undone.'))return;G.decks=[];save();rdDecks();rdBrowse();rdStats();updBadge();toast('All data cleared','i');}
+function clearAll(){if(!confirm('Delete ALL decks and cards? This cannot be undone.'))return;G.decks=[];saveSync();rdDecks();rdBrowse();rdStats();updBadge();toast('All data cleared','i');}
 
 // ══ TOAST ══
 function toast(msg,type='i'){const d=document.createElement('div');d.className='ti '+type;d.innerHTML='<div class="td '+type+'"></div><span>'+msg+'</span>';document.getElementById('toasts').appendChild(d);setTimeout(()=>d.remove(),4500);}
@@ -2622,7 +2690,7 @@ function showSessionComplete(){
     weakEl.style.display='none';
   }
 
-  save();rdStats();updBadge();
+  saveSync();rdStats();updBadge();
 }
 
 function restartSession(){
