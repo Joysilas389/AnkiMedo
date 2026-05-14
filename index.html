@@ -1669,6 +1669,7 @@ function buildVisualSVG(data,type,containerW){
   const cappedNodes=nodes.slice(0,7); // never more than 7
   nodes.length=0;cappedNodes.forEach(n=>nodes.push(n));
   if(!nodes.length)return '<div style="padding:1rem;color:var(--mut);font-size:.82rem">No visual data</div>';
+  const vtype=type||'pathway';
   // Network needs 4+ nodes to look right, else fall back to pathway
   const effectiveType=(vtype==='network'&&nodes.length<4)?'pathway':vtype;
 
@@ -1677,7 +1678,6 @@ function buildVisualSVG(data,type,containerW){
   const BG=isDark?'#0f172a':'#f8fafc',TX=isDark?'#f0f4ff':'#0f172a',
         MU=isDark?'#64748b':'#94a3b8',SU=isDark?'#1e293b':'#ffffff';
   const col=k=>cmap[k]||k||'#3b82f6';
-  const vtype=type||'pathway';
   const TITLE_H=title?26:6;
   const GAP=56; // guaranteed gap between node edges
 
