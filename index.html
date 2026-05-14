@@ -713,9 +713,8 @@ async function handleApkg(file){
   const nm=file.name.replace(/\.apkg$/i,'');
   const fileMB=(file.size/1024/1024).toFixed(1);
 
-  // Warn if very large
   if(file.size>200*1024*1024){
-    const proceed=confirm(`This file is ${fileMB}MB. AnkiMedo will extract only the card text database (usually 5-20MB inside the zip). Large files may take 30-60 seconds. Continue?`);
+    const proceed=confirm(`This file is ${fileMB}MB. AnkiMedo will extract card text and images (audio/video skipped). Large files may take 30-90 seconds. Continue?`);
     if(!proceed){hideProc();return;}
   }
 
@@ -725,64 +724,107 @@ async function handleApkg(file){
   try{
     setStep(2);
     const el2=document.getElementById('ps2');
-    if(el2&&el2.lastChild)el2.lastChild.textContent=' Unzipping — extracting card database…';
+    if(el2&&el2.lastChild)el2.lastChild.textContent=' Loading SQL engine…';
 
-    // Load sql.js first (before touching the zip)
     let SQL;
     try{
       SQL=await initSqlJs({
         locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}`
       });
     }catch(e){
-      hideProc();
-      toast('Could not load SQL engine. Check your connection.','e');
-      return;
+      hideProc();toast('Could not load SQL engine. Check connection.','e');return;
     }
 
-    // Unzip — JSZip streams lazily so the full 268MB isn't held in memory all at once
-    const zip=await JSZip.loadAsync(file,{
-      checkCRC32:false // skip CRC for speed on large files
-    });
+    if(el2&&el2.lastChild)el2.lastChild.textContent=' Unzipping — this may take a moment…';
 
-    // The SQLite database is always one of these filenames
-    const dbEntry=zip.file('collection.anki21')||zip.file('collection.anki2');
-    if(!dbEntry){
-      hideProc();
-      toast('No card database found in this .apkg file','e');
-      return;
-    }
+    const zip=await JSZip.loadAsync(file,{checkCRC32:false});
 
+    // ── Extract media map: filename → base64 (images only, skip audio/video) ──
     setStep(3);
     const el3=document.getElementById('ps3');
+    if(el3&&el3.lastChild)el3.lastChild.textContent=' Extracting images…';
+
+    const mediaMap={}; // anki media index → base64 data URL
+    const IMAGE_EXTS=/\.(jpg|jpeg|png|gif|webp|svg)$/i;
+    const AUDIO_VIDEO=/\.(mp3|ogg|wav|aac|flac|mp4|avi|mov|mkv)$/i;
+
+    // Anki stores a "media" JSON file mapping numeric keys to real filenames
+    // e.g. {"0":"image1.jpg","1":"diagram.png","2":"audio.mp3"}
+    let mediaIndex={};
+    const mediaJsonFile=zip.file('media');
+    if(mediaJsonFile){
+      try{
+        const mediaJson=await mediaJsonFile.async('string');
+        mediaIndex=JSON.parse(mediaJson);
+      }catch(e){console.warn('Could not parse media index:',e);}
+    }
+
+    // Build reverse map: real filename → numeric key (for HTML src lookup)
+    const filenameToKey={};
+    Object.entries(mediaIndex).forEach(([k,v])=>{filenameToKey[v]=k;});
+
+    // Extract image files only
+    let imgCount=0,skippedMedia=0;
+    const mediaFiles=Object.keys(zip.files).filter(name=>!name.endsWith('/'));
+
+    for(const fname of mediaFiles){
+      // fname is the numeric key (e.g. "0", "1", "2")
+      const realName=mediaIndex[fname]||fname;
+      if(AUDIO_VIDEO.test(realName)){skippedMedia++;continue;}
+      if(!IMAGE_EXTS.test(realName))continue;
+
+      try{
+        const imgBuf=await zip.files[fname].async('base64');
+        const ext=realName.split('.').pop().toLowerCase();
+        const mime=ext==='svg'?'image/svg+xml':ext==='gif'?'image/gif':ext==='webp'?'image/webp':'image/'+ext;
+        // Store by both numeric key AND real filename for flexible lookup
+        mediaMap[fname]=`data:${mime};base64,${imgBuf}`;
+        mediaMap[realName]=mediaMap[fname];
+        imgCount++;
+        if(el3&&el3.lastChild)el3.lastChild.textContent=` Extracted ${imgCount} images…`;
+        // Yield every 10 images to keep UI responsive
+        if(imgCount%10===0)await new Promise(r=>setTimeout(r,0));
+      }catch(e){console.warn('Could not extract image:',realName,e);}
+    }
+
+    console.log(`Images: ${imgCount} extracted, ${skippedMedia} audio/video skipped`);
+
+    // ── Extract SQLite database ──
+    const dbEntry=zip.file('collection.anki21')||zip.file('collection.anki2');
+    if(!dbEntry){hideProc();toast('No card database found in .apkg','e');return;}
+
     if(el3&&el3.lastChild)el3.lastChild.textContent=' Reading card database…';
-
-    // Extract ONLY the SQLite file — ignore all media (images/audio = the bulk of 268MB)
     const dbBuf=await dbEntry.async('arraybuffer');
-    const dbMB=(dbBuf.byteLength/1024/1024).toFixed(1);
-    console.log(`SQLite database extracted: ${dbMB}MB`);
-
     const db=new SQL.Database(new Uint8Array(dbBuf));
 
-    // Get total card count first
     let totalCount=0;
     try{
       const countRes=db.exec('SELECT COUNT(*) FROM notes');
       totalCount=countRes[0]?.values[0]?.[0]||0;
-    }catch(e){
-      hideProc();toast('Cannot read this Anki format: '+e.message,'e');return;
-    }
+    }catch(e){hideProc();toast('Cannot read Anki format: '+e.message,'e');return;}
 
-    if(totalCount===0){hideProc();toast('No cards found in this deck','e');return;}
+    if(!totalCount){hideProc();toast('No cards found','e');return;}
 
+    // ── Import cards in batches ──
     setStep(4);
     const el4=document.getElementById('ps4');
-    const BATCH=500;
-    const allCards=[];
+    const BATCH=500,allCards=[];
     let offset=0;
 
-    // Process in batches — avoids holding all rows in memory simultaneously
+    // Helper: replace Anki img src references with base64 data URLs
+    function resolveImages(html){
+      if(!html||!imgCount)return html;
+      // Replace <img src="filename"> or <img src="0"> with data URLs
+      return html.replace(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi,(match,src)=>{
+        const dataUrl=mediaMap[src]||mediaMap[filenameToKey[src]];
+        if(!dataUrl)return match; // image not found, keep original tag
+        // Return an inline image the browser can render
+        return `<img src="${dataUrl}" style="max-width:100%;border-radius:8px;margin:4px 0">`;
+      });
+    }
+
     while(offset<totalCount){
-      if(el4&&el4.lastChild)el4.lastChild.textContent=` Importing cards ${offset+1}–${Math.min(offset+BATCH,totalCount)} of ${totalCount}…`;
+      if(el4&&el4.lastChild)el4.lastChild.textContent=` Cards ${offset+1}–${Math.min(offset+BATCH,totalCount)} of ${totalCount}…`;
 
       const rows=db.exec(`SELECT flds,tags,id FROM notes LIMIT ${BATCH} OFFSET ${offset}`);
       if(!rows.length||!rows[0].values.length)break;
@@ -791,17 +833,26 @@ async function handleApkg(file){
         const flds=row[0]||'';
         const tags=(row[1]||'').trim();
         const fields=flds.split('');
-        const strip=html=>(html||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim();
 
-        const front=strip(fields[0]||'');
-        const back=strip(fields[1]||'');
-        const extra=strip(fields[2]||'');
+        // Resolve images first, then strip remaining HTML for plain text
+        const resolveField=f=>{
+          const withImgs=resolveImages(f||'');
+          // Keep img tags but strip all other HTML
+          return withImgs
+            .replace(/<(?!img)[^>]+>/gi,' ')
+            .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&')
+            .replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+            .replace(/\s+/g,' ').trim();
+        };
+
+        const front=resolveField(fields[0]);
+        const back=resolveField(fields[1]);
+        const extra=resolveField(fields[2]);
         if(!front||!back)return;
 
         const tagLower=tags.toLowerCase()+' '+front.toLowerCase()+' '+back.toLowerCase();
         const system=detectSystem(tagLower);
-        const diff=tagLower.includes('hard')||tagLower.includes('difficult')?'hard':
-                   tagLower.includes('easy')||tagLower.includes('basic')?'easy':'medium';
+        const diff=tagLower.includes('hard')?'hard':tagLower.includes('easy')?'easy':'medium';
 
         allCards.push({
           id:Date.now()+'_'+(offset+i),
@@ -809,9 +860,7 @@ async function handleApkg(file){
           answer:back,
           mechanism:extra||'',
           topic:system+' — '+nm,
-          system,
-          difficulty:diff,
-          exam,
+          system,difficulty:diff,exam,
           buzzwords:tags.split(/\s+/).filter(t=>t&&!t.startsWith('::')).slice(0,5).join(', '),
           mastery:0,interval:1,ef:2.5,
           due:new Date().toISOString(),rev:0
@@ -819,47 +868,32 @@ async function handleApkg(file){
       });
 
       offset+=BATCH;
-      // Yield to browser to prevent UI freeze
       await new Promise(r=>setTimeout(r,0));
     }
 
     db.close();
-
     if(!allCards.length){hideProc();toast('No valid cards parsed','e');return;}
 
     setStep(5);
-    // For very large decks, split into sub-decks by system for better organisation
+    // Split large imports by system
     if(allCards.length>500){
       const bySystem={};
       allCards.forEach(card=>{
-        const s=card.system;
-        if(!bySystem[s])bySystem[s]=[];
-        bySystem[s].push(card);
+        if(!bySystem[card.system])bySystem[card.system]=[];
+        bySystem[card.system].push(card);
       });
-      const systems=Object.keys(bySystem);
-      systems.forEach(sys=>{
-        G.decks.push({
-          id:''+Date.now()+Math.random(),
-          name:nm+' — '+sys,
-          exam,
-          createdAt:new Date().toISOString(),
-          cards:bySystem[sys],
-          source:'anki'
-        });
+      Object.entries(bySystem).forEach(([sys,cards])=>{
+        G.decks.push({id:''+Date.now()+Math.random(),name:nm+' — '+sys,exam,
+          createdAt:new Date().toISOString(),cards,source:'anki'});
       });
+      const sysCt=Object.keys(bySystem).length;
       save();hideProc();
-      toast('✅ '+allCards.length+' cards imported across '+systems.length+' decks by system','s');
+      toast(`✅ ${allCards.length} cards · ${imgCount} images · ${sysCt} decks by system`,'s');
     } else {
-      G.decks.push({
-        id:''+Date.now(),
-        name:nm+' (Anki Import)',
-        exam,
-        createdAt:new Date().toISOString(),
-        cards:allCards,
-        source:'anki'
-      });
+      G.decks.push({id:''+Date.now(),name:nm+' (Anki Import)',exam,
+        createdAt:new Date().toISOString(),cards:allCards,source:'anki'});
       save();hideProc();
-      toast('✅ '+allCards.length+' cards imported from "'+nm+'"','s');
+      toast(`✅ ${allCards.length} cards · ${imgCount} images imported`,'s');
     }
 
     rdDecks();rdBrowse();rdStats();updBadge();nav('library');
@@ -867,8 +901,8 @@ async function handleApkg(file){
   }catch(err){
     hideProc();
     console.error('APKG import error:',err);
-    if(err.message&&err.message.includes('memory')){
-      toast('File too large for browser memory. Export as .txt from Anki instead.','e');
+    if(err.message?.includes('memory')){
+      toast('File too large for browser memory. Try exporting as .txt from Anki desktop.','e');
     } else {
       toast('Import error: '+err.message,'e');
     }
@@ -1550,7 +1584,9 @@ function rdBrowse(){
     const dots=[1,2,3,4,5].map(i=>'<div class="mdot'+(c.mastery>=i?' on':'')+'"></div>').join('');
     return '<div class="fci '+(c.difficulty||'medium')+'" onclick="studyOne(\''+c.id+'\')">'
       +'<div class="fc-top">'+xe(c.topic||c.system||'')+'</div>'
-      +'<div class="fc-q">'+xe(c.question)+'</div>'
+      +(c.question.includes('<img')
+        ?'<div class="fc-q" style="font-size:.82rem">🖼 '+xe(c.question.replace(/<img[^>]+>/gi,'[image]').replace(/<[^>]+>/g,'').slice(0,120))+'</div>'
+        :'<div class="fc-q">'+xe(c.question)+'</div>')
       +(c.buzzwords?'<div class="fc-bw">🏷 '+xe(c.buzzwords)+'</div>':'')
       +(c.blueprint_cell?'<div style="font-size:.66rem;color:var(--acc2);margin-top:3px">📋 '+xe(c.blueprint_cell)+'</div>':'')
       +(c.mcc_objective?'<div style="font-size:.66rem;color:var(--mut);margin-top:2px">🎯 '+xe(c.mcc_objective)+'</div>':'')
@@ -1568,7 +1604,9 @@ function rdDue(){
     const dots=[1,2,3,4,5].map(i=>'<div class="mdot'+(c.mastery>=i?' on':'')+'"></div>').join('');
     return '<div class="fci '+(c.difficulty||'medium')+'" onclick="studyOne(\''+c.id+'\')">'
       +'<div class="fc-top">'+xe(c.topic||c.system||'')+'</div>'
-      +'<div class="fc-q">'+xe(c.question)+'</div>'
+      +(c.question.includes('<img')
+        ?'<div class="fc-q" style="font-size:.82rem">🖼 '+xe(c.question.replace(/<img[^>]+>/gi,'[image]').replace(/<[^>]+>/g,'').slice(0,120))+'</div>'
+        :'<div class="fc-q">'+xe(c.question)+'</div>')
       +'<div class="fc-meta"><span class="bdiff '+(c.difficulty||'medium')+'">'+( c.difficulty||'medium')+'</span><span class="bsys">'+xe(c.system||'General')+'</span><div class="mdots">'+dots+'</div></div></div>';
   }).join('');
 }
@@ -1620,8 +1658,12 @@ function loadCard(){
   const tot=G.sq.length,pct=Math.round(G.si/tot*100);
   document.getElementById('s-fill').style.width=pct+'%';
   document.getElementById('s-txt').textContent=(G.si+1)+' / '+tot;
-  document.getElementById('s-q').textContent=c.question;
-  document.getElementById('s-a').textContent=c.answer;
+  const sqEl=document.getElementById('s-q');
+  if(c.question.includes('<img')){sqEl.innerHTML=c.question;}
+  else{sqEl.textContent=c.question;}
+  const saEl=document.getElementById('s-a');
+  if(c.answer.includes('<img')){saEl.innerHTML=c.answer;}
+  else{saEl.textContent=c.answer;}
   document.getElementById('s-mech').innerHTML=(c.mechanism&&!G.examMode)?'<strong>⚡ Explanation:</strong> '+xe(c.mechanism):'';
   document.getElementById('s-buzz').textContent=c.buzzwords?'🏷 '+c.buzzwords:'';
   // Show MCC objective and dangerous act if present
