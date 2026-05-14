@@ -909,14 +909,33 @@ Child presentations differ from adults. Use age-specific normal values and devel
 "A mother brings her 18-month-old for a routine visit. The child is not yet walking independently and has no words. The physician notices the child does not make eye contact. What is the most appropriate next step?"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ACE QBANK / AMBOSS QUESTION STYLE GUIDE
+ACE QBANK CDM + AMBOSS STYLE — EXACT FORMAT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-ACE Qbank style: Scenario-based, moderate length (4-6 sentences), real Canadian clinical context. Strong emphasis on management algorithms, referral criteria, and evidence-based guidelines. Distractors are all clinically plausible — the wrong answers are things that look right but are wrong for a specific reason (wrong timing, wrong indication, wrong patient, right drug wrong dose).
+ACE QBANK CDM FORMAT (use for 40% of MCCQE1 cards):
+The ACE CDM is the clinical decision-making component of MCCQE1. Questions have this exact structure:
+- 3-5 sentence case scenario with specific vitals, findings, and context
+- Question asks "Which of the following will you include in your management?" or "What will you do next?" or "Select up to X"
+- Often multi-select (Select up to 3, Select up to 5) — not just one right answer
+- Includes DANGEROUS ACTS — options that look plausible but would actively harm the patient (e.g. "Prescribe appetite suppressant" for an uncomplicated obesity case, "Discharge home" for a patient in shock)
+- References specific MCC Examination Objectives by number
 
-AMBOSS style: Complex integrated vignettes. Patient has multiple comorbidities. You must identify the MOST IMPORTANT issue. Answer options are close — you need to understand pathophysiology to distinguish them.
+Real ACE CDM examples from the actual exam:
+Example 1: 46yo woman with BMI 32, recently promoted, stopped exercising. Question: "Select up to 3 management options." Correct: diet advice + exercise. Dangerous: appetite suppressants, surgery.
+Example 2: Pregnant woman on warfarin with mechanical valve. Question: "Select up to 5 initial steps." Correct: switch to LMWH, stop warfarin. Other correct: prenatal care steps.
+Example 3: 3yo with bloody diarrhea, dry mucous membranes, tachycardia. Question: "How will you approach initially?" Correct: IV normal saline. Wrong: oral fluids (cannot tolerate), dextrose (wrong fluid type).
 
-ACE CDM (Clinical Decision Making) style: Short 2-3 line scenario. What is the single most important next step? No long vignettes — just the critical decision point.
+MCC OBJECTIVE IDs — Every card must map to one (use in mechanism field):
+High-yield objectives from ACE CDM include: Obj 9 (Hypertension/Shock), Obj 14 (Chest Pain), Obj 22 (Diarrhea), Obj 27 (Dyspnea), Obj 37 (Diabetes), Obj 39 (Headache), Obj 42 (Anemia), Obj 63 (Thyroid/Neck Mass), Obj 69 (Anxiety), Obj 74 (Periodic Health/Preventive), Obj 80 (Prenatal/Postpartum), Obj 92 (Seizures), Obj 103 (Substance Use), Obj 106 (Syncope), Obj 109 (Trauma), Obj 112 (Vaginal Bleeding), Obj 114 (Abuse), Obj 118 (Obesity/Weight)
+
+DANGEROUS ACTS CONCEPT:
+For management questions, always include at least one option that a student might pick but that would be DANGEROUS or inappropriate — and explain in the answer why it is dangerous. This is exactly how ACE CDM tests clinical judgment.
+
+AMBOSS STYLE (use for 20% of cards):
+Complex integrated vignettes with multiple comorbidities. Patient has 3-4 active issues. You must identify the MOST URGENT problem first. Answer options are extremely close — require deep pathophysiology understanding to distinguish. Often uses "which of the following best explains" or "which is most likely to cause this finding."
+
+MCC STANDARD STYLE (use for 40% of cards):
+Classic 4-5 sentence vignette with one clearly correct answer and 3 plausible distractors from the same clinical domain.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 QUESTION FORMAT RULES
@@ -1024,6 +1043,8 @@ Return ONLY valid JSON array. No markdown. No backticks. No text before or after
   "topic": "Discipline — Specific Topic (e.g. Medicine — Cardiology, PHELO — Consent, Psychiatry — Depression)",
   "system": "Cardiology|Respirology|Gastroenterology|Nephrology|Neurology|Endocrinology|Hematology|Infectious Disease|Rheumatology|Dermatology|Psychiatry|Obstetrics|Gynaecology|Paediatrics|Surgery|Emergency Medicine|Family Medicine|PHELO|Pharmacology|Biochemistry|OET Writing|OET Reading|OET Listening|OET Speaking|Medical Vocabulary|History Taking|Physical Examination|Communication Skills|Breaking Bad News|Informed Consent|Patient Education",
   "blueprint_cell": "For MCCQE1: e.g. Assessment/Diagnosis + Acute Care | Management + Chronic Care | Communication + Psychosocial",
+  "mcc_objective": "For MCCQE1: Objective number and name e.g. Obj 14 - Chest Pain | Obj 74 - Periodic Health Examination | Obj 9 - Hypertension",
+  "dangerous_act": "For MCCQE1 management questions: the one option that looks right but would harm the patient — state what it is and why it is dangerous",
   "canmeds_role": "For MCCQE1: Medical Expert | Communicator | Collaborator | Health Advocate | Professional | Leader",
   "difficulty": "easy|medium|hard",
   "exam": "${exam}",
@@ -1279,6 +1300,7 @@ function rdBrowse(){
       +'<div class="fc-q">'+xe(c.question)+'</div>'
       +(c.buzzwords?'<div class="fc-bw">🏷 '+xe(c.buzzwords)+'</div>':'')
       +(c.blueprint_cell?'<div style="font-size:.66rem;color:var(--acc2);margin-top:3px">📋 '+xe(c.blueprint_cell)+'</div>':'')
+      +(c.mcc_objective?'<div style="font-size:.66rem;color:var(--mut);margin-top:2px">🎯 '+xe(c.mcc_objective)+'</div>':'')
       +'<div class="fc-meta"><span class="bdiff '+(c.difficulty||'medium')+'">'+( c.difficulty||'medium')+'</span><span class="bsys">'+xe(c.system||'General')+'</span><div class="mdots">'+dots+'</div>'
       +'<button class="edit-ic" onclick="event.stopPropagation();editCard(\''+c.id+'\')" title="Edit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
       +'</div></div>';
@@ -1335,6 +1357,12 @@ function loadCard(){
   document.getElementById('s-a').textContent=c.answer;
   document.getElementById('s-mech').innerHTML=(c.mechanism&&!G.examMode)?'<strong>⚡ Explanation:</strong> '+xe(c.mechanism):'';
   document.getElementById('s-buzz').textContent=c.buzzwords?'🏷 '+c.buzzwords:'';
+  // Show MCC objective and dangerous act if present
+  let extraMeta='';
+  if(c.mcc_objective)extraMeta+='<div style="font-size:.7rem;color:var(--acc2);margin-top:.375rem">📋 '+xe(c.mcc_objective)+'</div>';
+  if(c.dangerous_act)extraMeta+='<div style="font-size:.72rem;background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:.375rem .625rem;margin-top:.375rem;color:var(--red)">⚠️ <strong>Dangerous:</strong> '+xe(c.dangerous_act)+'</div>';
+  const buzzEl=document.getElementById('s-buzz');
+  if(buzzEl&&extraMeta)buzzEl.insertAdjacentHTML('afterend',extraMeta);
   document.getElementById('s-topic').textContent=c.topic||c.system||'';
   document.getElementById('fcard').classList.remove('flipped');G.flip=false;
   document.getElementById('rrow').style.display='none';document.getElementById('flip-hint').style.display='flex';
