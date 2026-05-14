@@ -1664,435 +1664,306 @@ function renderTutorVisual(data,type){
 }
 
 function buildVisualSVG(data,type,containerW){
-  const nodes=data.nodes||[],edges=data.edges||[],title=data.title||'',layout=data.layout_hint||'';
+  const nodes=data.nodes||[],edges=data.edges||[],title=data.title||'';
   if(!nodes.length)return '<div style="padding:1rem;color:var(--mut);font-size:.82rem">No visual data</div>';
 
   const cmap={acc:'#3b82f6',grn:'#10b981',red:'#ef4444',gld:'#f59e0b',pur:'#8b5cf6',acc2:'#06b6d4'};
   const isDark=!document.body.classList.contains('light');
-  const bg=isDark?'#111827':'#f8fafc',tx=isDark?'#f0f4ff':'#0f172a',
-        mu=isDark?'#8899bb':'#64748b',su=isDark?'#1a2235':'#ffffff';
+  const bg=isDark?'#0f172a':'#f8fafc',tx=isDark?'#f0f4ff':'#0f172a',
+        mu=isDark?'#64748b':'#94a3b8',su=isDark?'#1e293b':'#ffffff',
+        bdr=isDark?'rgba(255,255,255,.07)':'rgba(0,0,0,.08)';
   const col=k=>cmap[k]||k||'#3b82f6';
-  const W=Math.min(containerW-16,500);
-
-  // ── NODE SIZING: adapt to label length and count ──
-  const NW=Math.min(Math.max(100, Math.max(...nodes.map(n=>(n.label||'').length))*9+20), 140);
-  const NH=nodes.some(n=>n.sublabel)?58:48;
   const vtype=type||'pathway';
 
-  // ── LAYOUT ENGINES ──
-  let pos={},H=200;
+  // ── NODE DIMENSIONS: calculate per node based on label length ──
+  const PAD_X=20, PAD_Y=12, MIN_W=110, MAX_W=150;
+  const nodeSize=n=>{
+    const lbl=(n.label||'').slice(0,20);
+    const sub=(n.sublabel||'').slice(0,24);
+    const w=Math.min(MAX_W,Math.max(MIN_W,lbl.length*8.5+PAD_X*2));
+    const h=sub?60:48;
+    return {w,h};
+  };
+
+  const GAP_X=52, GAP_Y=48; // minimum space between nodes
+  const TITLE_H=title?28:8;
+
+  // ── LAYOUT: calculate raw positions (origin at 0,0 relative) ──
+  let rawPos={};
+  const sz=n=>nodeSize(n);
 
   if(vtype==='loop'){
-    // True circle layout — radius scales with node count
+    // Circle — radius based on node count and size
+    const maxW=Math.max(...nodes.map(n=>sz(n).w));
     const n=nodes.length;
-    const R=Math.max(80,n*28);
-    H=R*2+NH+50;
-    const cx=W/2,cy=H/2;
+    const R=Math.max(90,n*maxW*0.22+n*15);
     nodes.forEach((nd,i)=>{
       const angle=(2*Math.PI*i/n)-Math.PI/2;
-      pos[nd.id]={x:cx+R*Math.cos(angle)-NW/2,y:cy+R*Math.sin(angle)-NH/2};
+      const s=sz(nd);
+      rawPos[nd.id]={x:R*Math.cos(angle),y:R*Math.sin(angle),w:s.w,h:s.h};
     });
 
   } else if(vtype==='cascade'){
-    // Vertical, centred, evenly spaced
-    const spacing=Math.max(NH+28,80);
-    H=nodes.length*spacing+60;
-    nodes.forEach((nd,i)=>{pos[nd.id]={x:W/2-NW/2,y:30+i*spacing};});
+    // Vertical — each node below the previous with generous gap
+    let y=0;
+    nodes.forEach((nd,i)=>{
+      const s=sz(nd);
+      rawPos[nd.id]={x:0,y,w:s.w,h:s.h};
+      y+=s.h+GAP_Y;
+    });
 
   } else if(vtype==='receptor'){
-    // Horizontal: left=drug, centre=receptor(larger), right=effect
-    H=NH+80;
-    const n=nodes.length;
-    const step=W/(n+1);
-    nodes.forEach((nd,i)=>{pos[nd.id]={x:step*(i+1)-NW/2,y:H/2-NH/2};});
+    // Horizontal line
+    let x=0;
+    nodes.forEach((nd,i)=>{
+      const s=sz(nd);
+      rawPos[nd.id]={x,y:0,w:s.w,h:s.h};
+      x+=s.w+GAP_X;
+    });
 
   } else if(vtype==='balance'){
-    // Scale: pivot top centre, left pan and right pan below
-    H=200;
-    const half=Math.ceil(nodes.length/2);
-    const leftNodes=nodes.slice(0,half),rightNodes=nodes.slice(half);
-    const panY=110;
-    leftNodes.forEach((nd,i)=>{pos[nd.id]={x:W*0.04,y:panY+i*(NH+8)};});
-    rightNodes.forEach((nd,i)=>{pos[nd.id]={x:W*0.54,y:panY+i*(NH+8)};});
-    H=Math.max(H,panY+Math.max(leftNodes.length,rightNodes.length)*(NH+8)+20);
+    const left=nodes.slice(0,Math.ceil(nodes.length/2));
+    const right=nodes.slice(Math.ceil(nodes.length/2));
+    const maxW=Math.max(...nodes.map(n=>sz(n).w));
+    const colW=maxW+GAP_X;
+    let ly=0,ry=0;
+    left.forEach(nd=>{const s=sz(nd);rawPos[nd.id]={x:0,y:ly,w:s.w,h:s.h};ly+=s.h+GAP_Y*0.7;});
+    right.forEach(nd=>{const s=sz(nd);rawPos[nd.id]={x:colW,y:ry,w:s.w,h:s.h};ry+=s.h+GAP_Y*0.7;});
 
   } else if(vtype==='timeline'){
-    // Horizontal timeline — nodes above and below the line alternately
-    H=NH*2+100;
-    const step=W/(nodes.length+1);
+    // Horizontal, nodes stagger above/below
+    let x=0;
+    const maxH=Math.max(...nodes.map(n=>sz(n).h));
     nodes.forEach((nd,i)=>{
+      const s=sz(nd);
       const above=i%2===0;
-      pos[nd.id]={x:step*(i+1)-NW/2,y:above?20:H-NH-20};
+      rawPos[nd.id]={x,y:above?0:maxH+GAP_Y,w:s.w,h:s.h};
+      x+=s.w+GAP_X;
     });
 
   } else if(vtype==='network'){
-    // Radial: first node centre, rest orbit it
-    const n=nodes.length-1;
-    const R=Math.max(85,n*22);
-    H=R*2+NH+60;
-    const cx=W/2,cy=H/2;
-    pos[nodes[0].id]={x:cx-NW/2,y:cy-NH/2};
-    nodes.slice(1).forEach((nd,i)=>{
-      const angle=(2*Math.PI*i/Math.max(n,1));
-      pos[nd.id]={x:cx+R*Math.cos(angle)-NW/2,y:cy+R*Math.sin(angle)-NH/2};
+    // Centre node, others orbit it
+    const centre=nodes[0];
+    const cs=sz(centre);
+    rawPos[centre.id]={x:0,y:0,w:cs.w,h:cs.h};
+    const rest=nodes.slice(1);
+    const R=Math.max(100,cs.w+GAP_X+Math.max(...rest.map(n=>sz(n).w))*0.6);
+    rest.forEach((nd,i)=>{
+      const angle=(2*Math.PI*i/rest.length);
+      const s=sz(nd);
+      rawPos[nd.id]={x:R*Math.cos(angle),y:R*Math.sin(angle),w:s.w,h:s.h};
     });
 
   } else if(vtype==='comparison'){
-    // Two columns strictly side by side, never overlapping
-    const half=Math.ceil(nodes.length/2);
-    const spacing=NH+14;
-    H=half*spacing+60;
-    const lx=W*0.03,rx=W*0.51;
-    nodes.forEach((nd,i)=>{
-      const isRight=i>=half,row=isRight?i-half:i;
-      pos[nd.id]={x:isRight?rx:lx,y:44+row*spacing};
-    });
+    const left=nodes.slice(0,Math.ceil(nodes.length/2));
+    const right=nodes.slice(Math.ceil(nodes.length/2));
+    const maxW=Math.max(...nodes.map(n=>sz(n).w));
+    const colW=maxW+GAP_X*1.5;
+    let ly=0,ry=0;
+    left.forEach(nd=>{const s=sz(nd);rawPos[nd.id]={x:0,y:ly,w:s.w,h:s.h};ly+=s.h+GAP_Y*0.8;});
+    right.forEach(nd=>{const s=sz(nd);rawPos[nd.id]={x:colW,y:ry,w:s.w,h:s.h};ry+=s.h+GAP_Y*0.8;});
 
   } else if(vtype==='funnel'){
-    // Top wide, narrows to single node at bottom
-    const spacing=NH+20;
-    H=nodes.length*spacing+40;
+    const maxW=Math.max(...nodes.map(n=>sz(n).w));
+    let y=0;
     nodes.forEach((nd,i)=>{
-      const progress=i/(nodes.length-1||1);
-      const nodeW=NW*(1-progress*0.3);
-      const x=W/2-nodeW/2;
-      pos[nd.id]={x,y:20+i*spacing,w:nodeW};
+      const s=sz(nd);
+      const shrink=i/(nodes.length)*0.25;
+      const w=Math.max(MIN_W,s.w*(1-shrink));
+      rawPos[nd.id]={x:(maxW-w)/2,y,w,h:s.h};
+      y+=s.h+GAP_Y*0.8;
     });
 
   } else {
-    // Pathway default: smart grid
-    const cols=nodes.length<=2?nodes.length:nodes.length<=4?2:nodes.length<=6?3:3;
-    const rows=Math.ceil(nodes.length/cols);
-    const gx=W/(cols+1),gy=Math.max(NH+32,70);
-    H=rows*gy+50;
+    // pathway: smart grid
+    const n=nodes.length;
+    const cols=n<=2?n:n<=4?2:n<=6?3:3;
+    const maxW=Math.max(...nodes.map(nd=>sz(nd).w));
+    const maxH=Math.max(...nodes.map(nd=>sz(nd).h));
     nodes.forEach((nd,i)=>{
-      const c=i%cols,r=Math.floor(i/cols);
-      pos[nd.id]={x:gx*(c+1)-NW/2,y:25+r*gy};
+      const s=sz(nd);
+      const col_i=i%cols,row=Math.floor(i/cols);
+      rawPos[nd.id]={x:col_i*(maxW+GAP_X),y:row*(maxH+GAP_Y),w:s.w,h:s.h};
     });
   }
 
-  // ── COLLISION DETECTION: push overlapping nodes apart ──
-  for(let pass=0;pass<4;pass++){
+  // ── COLLISION RESOLUTION: push apart until no overlaps ──
+  for(let pass=0;pass<8;pass++){
+    let moved=false;
     nodes.forEach((a,i)=>{
       nodes.forEach((b,j)=>{
         if(i>=j)return;
-        const pa=pos[a.id],pb=pos[b.id];if(!pa||!pb)return;
-        const wa=pa.w||NW,wb=pb.w||NW;
-        const overlapX=(pa.x+wa)-(pb.x)-8;
-        const overlapY=(pa.y+NH)-(pb.y)-8;
+        const pa=rawPos[a.id],pb=rawPos[b.id];if(!pa||!pb)return;
+        const margin=16; // minimum gap between any two nodes
+        const overlapX=(pa.x+pa.w+margin)-(pb.x);
+        const overlapY=(pa.y+pa.h+margin)-(pb.y);
         if(overlapX>0&&overlapY>0){
-          // Push apart on the smaller overlap axis
+          // Push on the smaller overlap axis, proportionally
           if(overlapX<overlapY){
-            pa.x-=overlapX/2+4;pb.x+=overlapX/2+4;
+            const push=overlapX/2+1;
+            pa.x-=push;pb.x+=push;
           } else {
-            pa.y-=overlapY/2+4;pb.y+=overlapY/2+4;
+            const push=overlapY/2+1;
+            pa.y-=push;pb.y+=push;
           }
+          moved=true;
         }
       });
     });
+    if(!moved)break;
   }
 
-  // Clamp all nodes inside SVG bounds
+  // ── NORMALISE: shift all positions so minimum x=0, minimum y=0 ──
+  const minX=Math.min(...Object.values(rawPos).map(p=>p.x));
+  const minY=Math.min(...Object.values(rawPos).map(p=>p.y));
+  Object.values(rawPos).forEach(p=>{p.x-=minX;p.y-=minY;});
+
+  // ── CANVAS SIZE: derived from actual node positions, not guessed ──
+  const MARGIN=20;
+  const contentW=Math.max(...Object.values(rawPos).map(p=>p.x+p.w));
+  const contentH=Math.max(...Object.values(rawPos).map(p=>p.y+p.h));
+  const W=Math.min(Math.max(contentW+MARGIN*2,200),Math.min(containerW-16,520));
+  // Scale everything proportionally if wider than container
+  const scale=W/(contentW+MARGIN*2);
+  if(scale<1){
+    Object.values(rawPos).forEach(p=>{
+      p.x=p.x*scale+MARGIN;p.y=p.y*scale+MARGIN;
+      p.w*=scale;p.h*=scale;
+    });
+  } else {
+    Object.values(rawPos).forEach(p=>{p.x+=MARGIN;p.y+=MARGIN;});
+  }
+  const H=Math.max(...Object.values(rawPos).map(p=>p.y+p.h))+MARGIN+TITLE_H;
+
+  // Final positions offset by title height
+  const pos={};
   nodes.forEach(nd=>{
-    const p=pos[nd.id];if(!p)return;
-    const nw=p.w||NW;
-    p.x=Math.max(4,Math.min(W-nw-4,p.x));
-    p.y=Math.max(title?22:4,p.y);
+    const p=rawPos[nd.id];
+    pos[nd.id]={x:p.x,y:p.y+TITLE_H,w:p.w,h:p.h};
   });
-  // Recalculate H after clamping
-  const maxY=Math.max(...nodes.map(nd=>(pos[nd.id]?.y||0)+NH));
-  H=Math.max(H,maxY+30);
 
   // ── SVG BUILD ──
-  let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;overflow:visible">`;
-  svg+=`<rect width="${W}" height="${H}" fill="${bg}" rx="14"/>`;
-  if(title)svg+=`<text x="${W/2}" y="15" text-anchor="middle" fill="${mu}" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" letter-spacing="0.07em">${title.slice(0,50).toUpperCase()}</text>`;
+  let svg=`<svg viewBox="0 0 ${W} ${H+TITLE_H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">`;
+  svg+=`<rect width="${W}" height="${H+TITLE_H}" fill="${bg}" rx="14"/>`;
+  if(title)svg+=`<text x="${W/2}" y="${TITLE_H-6}" text-anchor="middle" fill="${mu}" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" letter-spacing="0.07em">${title.slice(0,55).toUpperCase()}</text>`;
 
-  // ── SPECIAL DECORATIONS per type ──
+  // ── SPECIAL DECORATIONS ──
   if(vtype==='balance'){
-    const px=W/2,py=40;
-    svg+=`<line x1="${px}" y1="${py}" x2="${W*0.15}" y2="105" stroke="${mu}" stroke-width="2.5"/>`;
-    svg+=`<line x1="${px}" y1="${py}" x2="${W*0.85}" y2="105" stroke="${mu}" stroke-width="2.5"/>`;
-    svg+=`<circle cx="${px}" cy="${py}" r="7" fill="${col('gld')}"/>`;
-    svg+=`<rect x="${W*0.04}" y="103" width="${W*0.42}" height="4" fill="${col('acc')}" rx="2" opacity="0.5"/>`;
-    svg+=`<rect x="${W*0.54}" y="103" width="${W*0.42}" height="4" fill="${col('red')}" rx="2" opacity="0.5"/>`;
+    const allX=nodes.map(n=>pos[n.id]);
+    const leftX=allX.slice(0,Math.ceil(nodes.length/2));
+    const rightX=allX.slice(Math.ceil(nodes.length/2));
+    const lCx=leftX.reduce((a,p)=>a+(p.x+p.w/2),0)/(leftX.length||1);
+    const rCx=rightX.reduce((a,p)=>a+(p.x+p.w/2),0)/(rightX.length||1);
+    const pivotX=W/2,pivotY=TITLE_H+8;
+    svg+=`<circle cx="${pivotX}" cy="${pivotY}" r="8" fill="${col('gld')}"/>`;
+    if(leftX.length)svg+=`<line x1="${pivotX}" y1="${pivotY+8}" x2="${lCx}" y2="${(pos[nodes[0].id]?.y||50)-8}" stroke="${mu}" stroke-width="2"/>`;
+    if(rightX.length)svg+=`<line x1="${pivotX}" y1="${pivotY+8}" x2="${rCx}" y2="${(pos[nodes[Math.ceil(nodes.length/2)]]?.y||50)-8}" stroke="${mu}" stroke-width="2"/>`;
   }
   if(vtype==='timeline'){
-    const y=H/2;
-    svg+=`<line x1="10" y1="${y}" x2="${W-10}" y2="${y}" stroke="${mu}" stroke-width="1.5" stroke-dasharray="5 3"/>`;
-    svg+=`<polygon points="${W-10},${y} ${W-18},${y-5} ${W-18},${y+5}" fill="${mu}"/>`;
-    svg+=`<text x="${W-12}" y="${y+18}" text-anchor="end" fill="${mu}" font-size="9">time →</text>`;
-    nodes.forEach((nd,i)=>{
-      const p=pos[nd.id];if(!p)return;
-      const above=i%2===0;
-      const nx=p.x+NW/2;
-      svg+=`<line x1="${nx}" y1="${H/2}" x2="${nx}" y2="${above?p.y+NH:p.y}" stroke="${col(nd.color)}" stroke-width="1" stroke-dasharray="3 2"/>`;
-    });
+    const lineY=TITLE_H+Math.max(...nodes.map(n=>sz(n).h))/2+MARGIN;
+    svg+=`<line x1="${MARGIN}" y1="${lineY+TITLE_H}" x2="${W-MARGIN}" y2="${lineY+TITLE_H}" stroke="${mu}" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.5"/>`;
+  }
+  if(vtype==='loop'){
+    const cx=W/2,cy=(H+TITLE_H)/2;
+    svg+=`<text x="${cx}" y="${cy+5}" text-anchor="middle" fill="${mu}" font-size="13" opacity="0.4">↻</text>`;
+  }
+  if(vtype==='comparison'){
+    svg+=`<line x1="${W/2}" y1="${TITLE_H+10}" x2="${W/2}" y2="${H+TITLE_H-10}" stroke="${mu}" stroke-width="1" stroke-dasharray="4 3" opacity="0.3"/>`;
   }
   if(vtype==='cascade'){
     const cx=W/2;
     nodes.forEach((nd,i)=>{
       if(i===nodes.length-1)return;
-      const py=(pos[nd.id]?.y||0)+NH;
-      const ny=pos[nodes[i+1].id]?.y||py+60;
-      svg+=`<line x1="${cx}" y1="${py+2}" x2="${cx}" y2="${ny-2}" stroke="${mu}" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.4"/>`;
+      const p=pos[nd.id],pn=pos[nodes[i+1].id];if(!p||!pn)return;
+      svg+=`<line x1="${cx}" y1="${p.y+p.h+2}" x2="${cx}" y2="${pn.y-2}" stroke="${mu}" stroke-width="1" stroke-dasharray="3 2" opacity="0.3"/>`;
     });
   }
-  if(vtype==='loop'){
-    const cx=W/2,cy=H/2;
-    svg+=`<circle cx="${cx}" cy="${cy}" r="20" fill="none" stroke="${mu}" stroke-width="1" stroke-dasharray="4 3" opacity="0.3"/>`;
-    svg+=`<text x="${cx}" y="${cy+5}" text-anchor="middle" fill="${mu}" font-size="10" font-family="-apple-system,sans-serif" opacity="0.7">↻</text>`;
-  }
-  if(vtype==='comparison'){
-    // Centre divider
-    svg+=`<line x1="${W/2}" y1="30" x2="${W/2}" y2="${H-10}" stroke="${mu}" stroke-width="1" stroke-dasharray="4 3" opacity="0.4"/>`;
-    // Column headers from first nodes of each half
-    const half=Math.ceil(nodes.length/2);
-    if(nodes[0])svg+=`<text x="${W*0.25}" y="34" text-anchor="middle" fill="${col(nodes[0].color)}" font-size="10" font-weight="700" font-family="-apple-system,sans-serif">${(nodes[0].label||'').toUpperCase().slice(0,12)}</text>`;
-    if(nodes[half])svg+=`<text x="${W*0.75}" y="34" text-anchor="middle" fill="${col(nodes[half].color)}" font-size="10" font-weight="700" font-family="-apple-system,sans-serif">${(nodes[half].label||'').toUpperCase().slice(0,12)}</text>`;
-  }
-  if(vtype==='funnel'){
-    // Funnel outline
-    const tw=W*0.96,bw=W*0.3,topY=20,botY=H-40;
-    svg+=`<path d="M${(W-tw)/2},${topY} L${(W+tw)/2},${topY} L${(W+bw)/2},${botY} L${(W-bw)/2},${botY} Z" fill="none" stroke="${mu}" stroke-width="1" stroke-dasharray="5 3" opacity="0.25"/>`;
-  }
 
-  // ── COLLECT EDGE LABELS for drawing last ──
+  // ── COLLECT EDGE LABELS for last-pass rendering ──
   const edgeLabels=[];
 
-  // ── DRAW EDGES ──
+  // ── DRAW EDGES (behind nodes) ──
   edges.forEach((e,ei)=>{
-    const from=pos[e.from],to=pos[e.to];if(!from||!to)return;
-    const fw=from.w||NW,tw2=to.w||NW;
-    const x1=from.x+fw/2,y1=from.y+NH/2,x2=to.x+tw2/2,y2=to.y+NH/2;
+    const fp=pos[e.from],tp=pos[e.to];if(!fp||!tp)return;
+    const x1=fp.x+fp.w/2,y1=fp.y+fp.h/2,x2=tp.x+tp.w/2,y2=tp.y+tp.h/2;
     const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;
     const ux=dx/dist,uy=dy/dist;
-    // Start/end at node border not centre
-    const sx=x1+ux*(fw/2+3),sy=y1+uy*(NH/2+3);
-    const ex2=x2-ux*(tw2/2+10),ey2=y2-uy*(NH/2+10);
+    // Start/end at node border
+    const sx=x1+ux*(fp.w/2+3),sy=y1+uy*(fp.h/2+3);
+    const ex2=x2-ux*(tp.w/2+11),ey2=y2-uy*(tp.h/2+11);
     const ec=col(e.color);
 
-    // Curve style depends on layout
+    // Curve: outward for loop, slight bend for others
     let pathD;
     if(vtype==='loop'){
-      // Curve outward away from centre
-      const cx=W/2,cy=H/2;
+      const cx=W/2,cy=(H+TITLE_H)/2;
       const mx=(sx+ex2)/2,my=(sy+ey2)/2;
       const td=Math.sqrt((mx-cx)**2+(my-cy)**2)||1;
-      const cv=50;
-      const cpx=mx+(mx-cx)/td*cv,cpy=my+(my-cy)/td*cv;
+      const cpx=mx+(mx-cx)/td*40,cpy=my+(my-cy)/td*40;
       pathD=`M${sx} ${sy} Q${cpx} ${cpy} ${ex2} ${ey2}`;
-    } else if(vtype==='network'){
-      // Slight curve
-      const mx=(sx+ex2)/2+uy*20,my=(sy+ey2)/2-ux*20;
-      pathD=`M${sx} ${sy} Q${mx} ${my} ${ex2} ${ey2}`;
-    } else if(vtype==='cascade'||vtype==='timeline'||vtype==='receptor'){
+    } else if(vtype==='cascade'||vtype==='receptor'||vtype==='timeline'){
       pathD=`M${sx} ${sy} L${ex2} ${ey2}`;
     } else {
-      const mx=(sx+ex2)/2-uy*12,my=(sy+ey2)/2+ux*12;
+      // Slight perpendicular bend to avoid straight overlap
+      const bend=(ei%2===0?1:-1)*18;
+      const mx=(sx+ex2)/2-uy*bend,my=(sy+ey2)/2+ux*bend;
       pathD=`M${sx} ${sy} Q${mx} ${my} ${ex2} ${ey2}`;
     }
 
+    const animDur=(1.0+ei*0.18).toFixed(2);
     if(e.animated){
-      svg+=`<path d="${pathD}" stroke="${bg}" stroke-width="5" fill="none"/>`;
-      svg+=`<path d="${pathD}" stroke="${ec}" stroke-width="2.5" fill="none" opacity="0.25"/>`;
-      svg+=`<path d="${pathD}" stroke="${ec}" stroke-width="2.5" fill="none" stroke-dasharray="10 8"><animate attributeName="stroke-dashoffset" values="0;-36" dur="${1.2+ei*0.15}s" repeatCount="indefinite"/></path>`;
+      svg+=`<path d="${pathD}" stroke="${ec}" stroke-width="2" fill="none" opacity="0.15"/>`;
+      svg+=`<path d="${pathD}" stroke="${ec}" stroke-width="2.5" fill="none" stroke-dasharray="9 7"><animate attributeName="stroke-dashoffset" values="0;-32" dur="${animDur}s" repeatCount="indefinite"/></path>`;
     } else {
-      svg+=`<path d="${pathD}" stroke="${bg}" stroke-width="4" fill="none"/>`;
-      svg+=`<path d="${pathD}" stroke="${mu}" stroke-width="1.8" fill="none"/>`;
+      svg+=`<path d="${pathD}" stroke="${mu}" stroke-width="1.8" fill="none" opacity="0.6"/>`;
     }
     // Arrowhead
-    svg+=`<polygon points="${ex2},${ey2} ${ex2-ux*11+uy*5},${ey2-uy*11-ux*5} ${ex2-ux*11-uy*5},${ey2-uy*11+ux*5}" fill="${e.animated?ec:mu}"/>`;
+    svg+=`<polygon points="${ex2},${ey2} ${ex2-ux*10+uy*4},${ey2-uy*10-ux*4} ${ex2-ux*10-uy*4},${ey2-uy*10+ux*4}" fill="${e.animated?ec:mu}" opacity="${e.animated?1:0.6}"/>`;
 
-    if(e.label)edgeLabels.push({px:(sx+ex2)/2,py:(sy+ey2)/2,label:e.label,color:ec});
+    if(e.label)edgeLabels.push({px:(sx+ex2)/2,py:(sy+ey2)/2,label:e.label.slice(0,16),color:ec});
   });
 
-  // ── DRAW NODES ──
+  // ── DRAW NODES (on top of edges) ──
   nodes.forEach((nd,i)=>{
     const p=pos[nd.id];if(!p)return;
-    const nw=p.w||NW,nc=col(nd.color);
-    svg+=`<g style="opacity:0;animation:nfade 0.3s ease ${i*0.1}s forwards">`;
-    // Shadow
-    svg+=`<rect x="${p.x+2}" y="${p.y+3}" width="${nw}" height="${NH}" fill="${nc}" rx="10" opacity="0.12"/>`;
-    // Body
-    svg+=`<rect x="${p.x}" y="${p.y}" width="${nw}" height="${NH}" fill="${su}" stroke="${nc}" stroke-width="1.8" rx="10"/>`;
-    // Coloured top accent
-    svg+=`<rect x="${p.x}" y="${p.y}" width="${nw}" height="5" fill="${nc}" rx="5 5 0 0"/>`;
-
-    // Label — centred, wraps if needed
+    const nc=col(nd.color);
     const lbl=(nd.label||'').slice(0,20);
     const sub=(nd.sublabel||'').slice(0,24);
-    const lblY=sub?p.y+NH*0.42:p.y+NH*0.58;
-    svg+=`<text x="${p.x+nw/2}" y="${lblY}" text-anchor="middle" fill="${tx}" font-size="11.5" font-family="-apple-system,sans-serif" font-weight="700">${lbl}</text>`;
-    if(sub)svg+=`<text x="${p.x+nw/2}" y="${p.y+NH*0.75}" text-anchor="middle" fill="${mu}" font-size="9" font-family="-apple-system,sans-serif">${sub}</text>`;
+    const fsize=p.w<120?10.5:11.5;
 
-    // Step badge for cascade
+    svg+=`<g style="opacity:0;animation:nfade 0.3s ease ${i*0.09}s forwards">`;
+    // Drop shadow
+    svg+=`<rect x="${p.x+2}" y="${p.y+3}" width="${p.w}" height="${p.h}" fill="${nc}" rx="10" opacity="0.1"/>`;
+    // Body
+    svg+=`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="${su}" stroke="${nc}" stroke-width="1.8" rx="10"/>`;
+    // Top accent bar
+    svg+=`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="5" fill="${nc}" rx="5"/>`;
+    svg+=`<rect x="${p.x}" y="${p.y+3}" width="${p.w}" height="4" fill="${nc}"/>`;
+
+    // Text — vertically centred in node
+    const lblY=sub?p.y+p.h*0.42:p.y+p.h*0.6;
+    svg+=`<text x="${p.x+p.w/2}" y="${lblY}" text-anchor="middle" dominant-baseline="middle" fill="${tx}" font-size="${fsize}" font-family="-apple-system,sans-serif" font-weight="700">${lbl}</text>`;
+    if(sub)svg+=`<text x="${p.x+p.w/2}" y="${p.y+p.h*0.73}" text-anchor="middle" dominant-baseline="middle" fill="${mu}" font-size="9" font-family="-apple-system,sans-serif">${sub}</text>`;
+
+    // Step number for cascade
     if(vtype==='cascade'){
-      svg+=`<circle cx="${p.x+nw-10}" cy="${p.y+10}" r="9" fill="${nc}"/>`;
-      svg+=`<text x="${p.x+nw-10}" y="${p.y+14}" text-anchor="middle" fill="white" font-size="9" font-weight="700" font-family="-apple-system,sans-serif">${i+1}</text>`;
+      svg+=`<circle cx="${p.x+p.w-11}" cy="${p.y+11}" r="9" fill="${nc}"/>`;
+      svg+=`<text x="${p.x+p.w-11}" y="${p.y+11}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-weight="700" font-family="-apple-system,sans-serif">${i+1}</text>`;
     }
     svg+='</g>';
   });
 
-  // ── EDGE LABELS LAST — always on top, pill-shaped with background ──
+  // ── EDGE LABELS: absolutely last, pill background, always readable ──
   edgeLabels.forEach(el=>{
-    const lbl=el.label.slice(0,16);
-    const lw=lbl.length*6.5+14;
-    svg+=`<rect x="${el.px-lw/2}" y="${el.py-11}" width="${lw}" height="19" fill="${bg}" stroke="${el.color}" stroke-width="1.2" rx="10" opacity="0.97"/>`;
-    svg+=`<text x="${el.px}" y="${el.py+5}" text-anchor="middle" fill="${el.color}" font-size="10" font-family="-apple-system,sans-serif" font-weight="700">${lbl}</text>`;
+    const lw=el.label.length*6.8+16;
+    const lh=18;
+    svg+=`<rect x="${el.px-lw/2}" y="${el.py-lh/2}" width="${lw}" height="${lh}" fill="${bg}" stroke="${el.color}" stroke-width="1.3" rx="9" opacity="0.97"/>`;
+    svg+=`<text x="${el.px}" y="${el.py}" text-anchor="middle" dominant-baseline="middle" fill="${el.color}" font-size="10" font-family="-apple-system,sans-serif" font-weight="700">${el.label}</text>`;
   });
 
-  svg+=`<style>@keyframes nfade{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}</style>`;
+  svg+=`<style>@keyframes nfade{from{opacity:0;transform:scale(0.88)}to{opacity:1;transform:scale(1)}}</style>`;
   svg+='</svg>';
   return svg;
-}
-
-function closeTutor(){document.getElementById('tutor-panel').style.display='none';document.getElementById('rrow').style.display='flex';}
-
-function tutorContinue(){document.getElementById('tutor-panel').style.display='none';G.si++;loadCard();}
-
-// ══ EXAM MODE ══
-function togExamMode(){
-  G.examMode=!G.examMode;save();updExamModeUI();
-  toast(G.examMode?'⚡ Exam Mode ON — rapid fire, no explanations':'📖 Back to Normal Mode','i');
-}
-function updExamModeUI(){
-  const btn=document.getElementById('tog-exam');
-  const desc=document.getElementById('exam-mode-desc');
-  const sub=document.getElementById('exam-mode-sub');
-  if(btn)btn.className='tog '+(G.examMode?'on':'off');
-  if(desc)desc.style.display=G.examMode?'block':'none';
-  if(sub)sub.textContent=G.examMode?'ACTIVE — Rapid fire · No explanations · No AI tutor':'Rapid-fire · No mechanism · No tutor · Pure drilling';
-}
-
-// ══ REVISION MODE ══
-function startRevision(deckId){
-  const deck=G.decks.find(d=>d.id===deckId);if(!deck)return;
-  const weak=deck.cards.filter(c=>(c.mastery||0)<2).sort((a,b)=>(a.mastery||0)-(b.mastery||0)).map(c=>({...c,di:deck.id,dn:deck.name}));
-  if(!weak.length){toast('No weak cards — all mastered!','s');return;}
-  G.studyMode='revision';G.sq=weak;G.si=0;
-  const inner=document.querySelector('.sv-inner');
-  if(inner){const eb=document.getElementById('revision-banner');if(eb)eb.remove();const banner=document.createElement('div');banner.id='revision-banner';banner.style.cssText='background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.28);border-radius:10px;padding:.625rem .875rem;font-size:.79rem;color:var(--red);margin-bottom:.875rem;display:flex;align-items:center;gap:7px';banner.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg><span><strong>Revision Mode</strong> — '+weak.length+' weak card'+(weak.length>1?'s':'')+' from "'+deck.name+'". Hammer these until they stick.</span>';inner.insertBefore(banner,inner.firstChild);}
-  document.getElementById('study').classList.add('on');G.flip=false;loadCard();
-  toast('Revising '+weak.length+' weak cards from "'+deck.name+'"','i');
-}
-
-// ══ INLINE CARD VISUAL ══
-let _cardVisualLoaded=false,_cardVisualSteps=[],_cardVisualIdx=0;
-
-async function toggleCardVisual(){
-  const panel=document.getElementById('card-visual-panel');
-  const btn=document.getElementById('card-visual-btn');
-  if(!panel||!btn)return;
-
-  // If already open, toggle closed
-  if(panel.style.display==='block'){
-    panel.style.display='none';
-    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Show animated explanation';
-    return;
-  }
-
-  // Show panel
-  panel.style.display='block';
-  btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Hide explanation';
-  document.getElementById('study').scrollTo({top:document.getElementById('study').scrollHeight,behavior:'smooth'});
-
-  // Already loaded — just show
-  if(_cardVisualLoaded)return;
-
-  if(!G.apiKey){
-    document.getElementById('card-visual-loading').style.display='none';
-    document.getElementById('card-visual-content').style.display='block';
-    document.getElementById('card-inline-visual').innerHTML='<div style="padding:1rem;font-size:.82rem;color:var(--mut)">Set API key in Settings to enable visual explanations.</div>';
-    return;
-  }
-
-  const card=G.sq[G.si];if(!card)return;
-  const msgs=['Mapping the pathophysiology…','Building the animation…','Designing the visual pathway…'];
-  let mi=0;
-  const ticker=setInterval(()=>{const el=document.getElementById('card-visual-loading-txt');if(el)el.textContent=msgs[mi++%msgs.length];},2000);
-
-  try{
-    const data=await callCardVisualAPI(card);
-    clearInterval(ticker);
-    _cardVisualLoaded=true;
-    _cardVisualSteps=data.steps||[];
-    _cardVisualIdx=0;
-    document.getElementById('card-visual-loading').style.display='none';
-    document.getElementById('card-visual-content').style.display='block';
-    renderCardVisual(data);
-  }catch(err){
-    clearInterval(ticker);
-    document.getElementById('card-visual-loading').style.display='none';
-    document.getElementById('card-visual-content').style.display='block';
-    document.getElementById('card-inline-visual').innerHTML='<div style="padding:1rem;font-size:.82rem;color:var(--mut)">Could not load visual: '+err.message+'</div>';
-  }
-}
-
-async function callCardVisualAPI(card){
-  const exam=card.exam||G.se||'medical exam';
-  const sys=`You are the world's greatest medical animator and teacher. Given a medical concept, you create a rich, dynamic, interactive visual explanation that makes the pathophysiology come alive.
-
-Your goal: make the learner FEEL what is happening inside the body — blood moving, ions flowing, enzymes working, signals cascading, cells attacking. Use motion and animation to show cause and effect.
-
-Choose the BEST visual type for this specific concept:
-- "loop": reentrant circuits, feedback loops (AVNRT, HPA axis, renin-angiotensin, baroreceptor reflex)
-- "cascade": inflammatory cascades, coagulation, complement activation, apoptosis, RAAS, signal transduction
-- "receptor": drug mechanisms, receptor activation, enzyme inhibition, ion channel opening/closing
-- "balance": electrolyte disorders, acid-base imbalance, fluid shifts, osmolality changes
-- "timeline": disease progression over time, acute vs chronic phases, treatment response
-- "network": multisystem diseases spreading (sepsis, DIC, SLE, anaphylaxis)
-- "comparison": two competing diagnoses, before vs after treatment, normal vs pathological
-- "funnel": diagnosis narrowing from broad differential
-- "anatomy": where in the body something happens (cardiac tamponade, PE, pneumothorax)
-- "pathway": gene/metabolic pathways, biosynthesis, catabolism
-- "motion_cells": immune cell activation, phagocytosis, viral replication — show cells moving and interacting
-
-For EVERY concept, think:
-1. What is moving? (blood, ions, cells, signals, molecules)
-2. Where does it go? (into a cell, through a valve, across a membrane)
-3. What does it hit or trigger?
-4. What is the clinical consequence?
-
-Return ONLY valid JSON, no markdown:
-{
-  "visual_type": "loop|cascade|receptor|balance|timeline|network|comparison|funnel|anatomy|pathway|motion_cells",
-  "visual_data": {
-    "nodes": [{"id":"A","label":"Short label","sublabel":"under 20 chars","color":"acc|grn|red|gld|pur|acc2"}],
-    "edges": [{"from":"A","to":"B","label":"what moves/flows","animated":true,"color":"acc|grn|red|gld|pur"}],
-    "title": "Title under 40 chars",
-    "layout_hint": "circle|vertical|horizontal|radial|two-column"
-  },
-  "analogy": "One vivid real-world analogy — plumbing, electrical circuits, traffic, factories, dominoes. Make it concrete and specific.",
-  "steps": [
-    {"title":"What is happening","text":"Plain language. What is moving, where, why, what it causes.","highlight":"The single word that is the KEY to understanding this step"}
-  ],
-  "motion_description": "Describe in one sentence what you want the learner to visualise moving in their mind when they look at this diagram"
-}
-
-Nodes: 3-8 max. Labels: under 16 characters. Sublabels: under 20 characters. Steps: 3-6.`;
-
-  const usr=`MEDICAL CONCEPT TO VISUALISE:
-Question: ${card.question}
-Answer: ${card.answer}
-Mechanism: ${card.mechanism||''}
-Topic: ${card.topic||card.system||''}
-Exam: ${exam}
-
-Create an animated visual explanation that shows what is physically happening inside the body — what is moving, where it goes, what it triggers. Make it dynamic and memorable.`;
-
-  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),90000);
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':G.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    signal:ctrl.signal,
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,system:sys,messages:[{role:'user',content:usr}]})
-  });
-  clearTimeout(timer);
-  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+r.status);}
-  const d=await r.json();
-  const txt=d.content.filter(x=>x.type==='text').map(x=>x.text).join('');
-  return JSON.parse(txt.replace(/```json|```/g,'').trim());
 }
 
 function renderCardVisual(data){
