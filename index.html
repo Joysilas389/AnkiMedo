@@ -473,8 +473,8 @@ button{font-family:var(--fb)}
               <div id="card-inline-steps" style="display:none;margin-bottom:.5rem">
                 <div id="card-inline-steps-list"></div>
                 <div style="display:flex;gap:.5rem;margin-top:.5rem">
-                  <button onclick="cardVisualStep(-1)" class="btn-o" style="padding:.35rem .75rem;font-size:.77rem">← Prev</button>
-                  <button onclick="cardVisualStep(1)" class="btn-p" style="padding:.35rem .75rem;font-size:.77rem">Next →</button>
+                  <button id="card-visual-prev" onclick="cardVisualStep(-1)" class="btn-o" style="padding:.35rem .75rem;font-size:.77rem">← Prev</button>
+                  <button id="card-visual-next" onclick="cardVisualStep(1)" class="btn-p" style="padding:.35rem .75rem;font-size:.77rem">Next →</button>
                   <span id="card-visual-step-n" style="margin-left:auto;font-size:.76rem;color:var(--mut);align-self:center"></span>
                 </div>
               </div>
@@ -2009,6 +2009,171 @@ function renderCardVisualStep(){
     +(hl?'<div style="margin-top:.375rem;font-size:.73rem;color:var(--gld);font-weight:600">Key: '+hl+'</div>':'')
     +'</div>';
   if(stepN)stepN.textContent='Step '+(_cardVisualIdx+1)+' of '+_cardVisualSteps.length;
+}
+
+function cardVisualStep(dir){
+  const n=_cardVisualIdx+dir;
+  if(n<0||n>=_cardVisualSteps.length)return;
+  _cardVisualIdx=n;
+  renderCardVisualStep();
+}
+
+// ══ INLINE CARD VISUAL ══
+let _cardVisualLoaded=false,_cardVisualSteps=[],_cardVisualIdx=0;
+
+async function toggleCardVisual(){
+  const panel=document.getElementById('card-visual-panel');
+  const btn=document.getElementById('card-visual-btn');
+  if(!panel||!btn)return;
+
+  // Toggle closed if already open
+  if(panel.style.display==='block'){
+    panel.style.display='none';
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Show animated explanation';
+    return;
+  }
+
+  panel.style.display='block';
+  btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Hide explanation';
+  setTimeout(()=>document.getElementById('study').scrollTo({top:99999,behavior:'smooth'}),100);
+
+  // Already loaded — just reveal
+  if(_cardVisualLoaded)return;
+
+  if(!G.apiKey){
+    document.getElementById('card-visual-loading').style.display='none';
+    document.getElementById('card-visual-content').style.display='block';
+    document.getElementById('card-inline-visual').innerHTML='<div style="padding:1rem;font-size:.82rem;color:var(--mut)">Set API key in Settings to enable visual explanations.</div>';
+    return;
+  }
+
+  const card=G.sq[G.si];if(!card)return;
+
+  const msgs=['Mapping the pathophysiology…','Building the animation…','Designing the visual pathway…','Connecting the concepts…'];
+  let mi=0;
+  const ticker=setInterval(()=>{
+    const el=document.getElementById('card-visual-loading-txt');
+    if(el)el.textContent=msgs[mi++%msgs.length];
+  },1800);
+
+  try{
+    const data=await callCardVisualAPI(card);
+    clearInterval(ticker);
+    _cardVisualLoaded=true;
+    _cardVisualSteps=data.steps||[];
+    _cardVisualIdx=0;
+    document.getElementById('card-visual-loading').style.display='none';
+    document.getElementById('card-visual-content').style.display='block';
+    renderCardVisual(data);
+    setTimeout(()=>document.getElementById('study').scrollTo({top:99999,behavior:'smooth'}),200);
+  }catch(err){
+    clearInterval(ticker);
+    document.getElementById('card-visual-loading').style.display='none';
+    document.getElementById('card-visual-content').style.display='block';
+    document.getElementById('card-inline-visual').innerHTML='<div style="padding:1rem;font-size:.82rem;color:var(--red)">Could not load visual: '+err.message+'</div>';
+  }
+}
+
+async function callCardVisualAPI(card){
+  const exam=card.exam||G.se||'medical exam';
+  const sys=`You are the world's greatest medical animator. Create an interactive visual explanation of this concept that makes the pathophysiology come alive — show what physically moves, flows, or changes inside the body.
+
+Choose the BEST visual type:
+- "loop": reentrant circuits, feedback loops (AVNRT, HPA axis, renin-angiotensin)
+- "cascade": inflammatory cascades, coagulation, apoptosis, signal transduction — vertical waterfall
+- "receptor": drug-receptor mechanisms, enzyme inhibition, ion channels — horizontal approach
+- "balance": electrolyte disorders, acid-base, fluid shifts — scale/balance diagram
+- "timeline": disease progression, treatment response over time — horizontal sequence
+- "network": multisystem diseases (sepsis, DIC, SLE, anaphylaxis) — radial web
+- "comparison": Type 1 vs Type 2, Crohn vs UC, before vs after — two columns
+- "funnel": differential diagnosis narrowing — wide to narrow
+- "pathway": metabolic pathways, biosynthesis — default linear flow
+
+Return ONLY valid JSON, no markdown:
+{
+  "visual_type": "loop|cascade|receptor|balance|timeline|network|comparison|funnel|pathway",
+  "visual_data": {
+    "nodes": [{"id":"A","label":"Max 16 chars","sublabel":"max 22 chars","color":"acc|grn|red|gld|pur|acc2"}],
+    "edges": [{"from":"A","to":"B","label":"max 14 chars","animated":true,"color":"acc|grn|red|gld|pur"}],
+    "title":"max 40 chars",
+    "layout_hint":"circle|vertical|horizontal|radial|two-column"
+  },
+  "analogy":"One vivid everyday analogy — plumbing, traffic, electrical circuits, factories.",
+  "steps":[{"title":"Step title","text":"Plain language, one concept at a time.","highlight":"Single key word"}],
+  "motion_description":"One sentence: what is physically moving and where in this diagram."
+}
+Nodes: 3-7 max. Labels strictly under 16 chars. Steps: 3-5.`;
+
+  const usr=`Concept to visualise:
+Question: ${card.question}
+Answer: ${card.answer}
+Mechanism: ${card.mechanism||''}
+Topic: ${card.topic||card.system||''}
+Exam: ${exam}
+
+Show what is moving, flowing, or changing inside the body. Make it dynamic and memorable.`;
+
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),90000);
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':G.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    signal:ctrl.signal,
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2500,system:sys,messages:[{role:'user',content:usr}]})
+  });
+  clearTimeout(timer);
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+r.status);}
+  const d=await r.json();
+  const txt=d.content.filter(x=>x.type==='text').map(x=>x.text).join('');
+  return JSON.parse(txt.replace(/```json|```/g,'').trim());
+}
+
+function renderCardVisual(data){
+  // Get container width from the actual visible element
+  const vEl=document.getElementById('card-inline-visual');
+  if(!vEl)return;
+  // Use parentElement width as fallback since panel may not have rendered yet
+  const W=vEl.offsetWidth||vEl.parentElement?.offsetWidth||300;
+  if(data.visual_data){
+    const svg=buildVisualSVG(data.visual_data,data.visual_type||'pathway',W);
+    vEl.innerHTML='<div style="padding:.5rem .25rem .25rem">'+svg+'</div>';
+  }
+
+  // Motion description
+  if(data.motion_description&&vEl){
+    vEl.insertAdjacentHTML('beforeend','<div style="font-size:.77rem;color:var(--mut);text-align:center;padding:.375rem .5rem;font-style:italic;border-top:1px solid var(--bdr);margin-top:2px">👁 '+xe(data.motion_description)+'</div>');
+  }
+
+  // Analogy
+  const at=document.getElementById('card-inline-analogy-txt');
+  const ae=document.getElementById('card-inline-analogy');
+  if(data.analogy&&at&&ae){at.textContent=data.analogy;ae.style.display='block';}
+
+  // Steps
+  if(data.steps&&data.steps.length){
+    document.getElementById('card-inline-steps').style.display='block';
+    renderCardVisualStep();
+  }
+}
+
+function renderCardVisualStep(){
+  const list=document.getElementById('card-inline-steps-list');
+  const stepN=document.getElementById('card-visual-step-n');
+  if(!list||!_cardVisualSteps.length)return;
+  const step=_cardVisualSteps[_cardVisualIdx];
+  const txt=xe(step.text||'');
+  const hl=step.highlight?xe(step.highlight):'';
+  const highlighted=hl?txt.replace(new RegExp(hl,'g'),'<strong style="color:var(--gld)">'+hl+'</strong>'):txt;
+  list.innerHTML='<div style="background:rgba(139,92,246,.07);border:1px solid var(--bdr);border-left:3px solid var(--pur);border-radius:0 10px 10px 0;padding:.75rem">'
+    +'<div style="font-size:.77rem;font-weight:700;color:var(--pur);margin-bottom:.3rem">'+xe(step.title||'')+'</div>'
+    +'<div style="font-size:.855rem;line-height:1.7;color:var(--txt)">'+highlighted+'</div>'
+    +(hl?'<div style="margin-top:.375rem;font-size:.73rem;color:var(--gld);font-weight:600">Key: '+hl+'</div>':'')
+    +'</div>';
+  if(stepN)stepN.textContent='Step '+(_cardVisualIdx+1)+' of '+_cardVisualSteps.length;
+  // Update prev/next buttons
+  const prev=document.getElementById('card-visual-prev');
+  const next=document.getElementById('card-visual-next');
+  if(prev)prev.disabled=_cardVisualIdx===0;
+  if(next)next.textContent=_cardVisualIdx===_cardVisualSteps.length-1?'✓ Done':'Next →';
 }
 
 function cardVisualStep(dir){
