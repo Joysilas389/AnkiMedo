@@ -1678,7 +1678,7 @@ function buildVisualSVG(data,type,containerW){
   const BG=isDark?'#0f172a':'#f8fafc',TX=isDark?'#f0f4ff':'#0f172a',
         MU=isDark?'#64748b':'#94a3b8',SU=isDark?'#1e293b':'#ffffff';
   const col=k=>cmap[k]||k||'#3b82f6';
-  const TITLE_H=title?26:6;
+  const TITLE_H=title?36:6;
   const GAP=56; // guaranteed gap between node edges
 
   // ── NODE SIZE: derived from actual text length, never clipped ──
@@ -1871,7 +1871,27 @@ function buildVisualSVG(data,type,containerW){
   // ── SVG ──
   let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">`;
   svg+=`<rect width="${W}" height="${H}" fill="${BG}" rx="14"/>`;
-  if(title)svg+=`<text x="${W/2}" y="${TITLE_H-5}" text-anchor="middle" fill="${MU}" font-size="9.5" font-family="-apple-system,sans-serif" font-weight="700" letter-spacing="0.07em">${title.slice(0,52).toUpperCase()}</text>`;
+  if(title){
+    const titleStr=title.toUpperCase();
+    const maxCharsPerLine=Math.floor((W-24)/7); // ~7px per char at font-size 10
+    if(titleStr.length<=maxCharsPerLine){
+      // Single line — fits comfortably
+      svg+=`<text x="${W/2}" y="${TITLE_H-14}" text-anchor="middle" fill="${MU}" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" letter-spacing="0.05em">${titleStr}</text>`;
+    } else {
+      // Split at a word boundary near the middle
+      const mid=Math.floor(titleStr.length/2);
+      let split=mid;
+      // Find nearest space around midpoint
+      for(let d=0;d<20;d++){
+        if(titleStr[mid-d]===' '){split=mid-d;break;}
+        if(titleStr[mid+d]===' '){split=mid+d;break;}
+      }
+      const line1=titleStr.slice(0,split).trim();
+      const line2=titleStr.slice(split).trim();
+      svg+=`<text x="${W/2}" y="${TITLE_H-22}" text-anchor="middle" fill="${MU}" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" letter-spacing="0.05em">${line1}</text>`;
+      svg+=`<text x="${W/2}" y="${TITLE_H-8}" text-anchor="middle" fill="${MU}" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" letter-spacing="0.05em">${line2}</text>`;
+    }
+  }
 
   // ── SIMPLE DECORATIONS (no geometry that collides with nodes) ──
   if(vtype==='loop'){
