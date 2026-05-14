@@ -440,6 +440,25 @@ button{font-family:var(--fb)}
 <!-- STUDY VIEW -->
 <div id="study">
   <div class="sv-inner">
+    <div id="session-complete" style="display:none;text-align:center;padding:2rem 1rem">
+      <div style="font-size:3rem;margin-bottom:.5rem" id="sc-emoji">🎉</div>
+      <div style="font-family:var(--fh);font-size:1.3rem;font-weight:800;margin-bottom:.25rem" id="sc-title">Session Complete!</div>
+      <div style="font-size:.85rem;color:var(--mut);margin-bottom:1.75rem" id="sc-subtitle"></div>
+      <!-- Rating breakdown -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:1.5rem" id="sc-ratings"></div>
+      <!-- Progress by system this session -->
+      <div id="sc-systems" style="background:var(--sur);border:1px solid var(--bdr);border-radius:14px;padding:1.125rem;margin-bottom:1.25rem;text-align:left">
+        <div style="font-size:.78rem;font-weight:700;color:var(--txt);margin-bottom:.75rem">📊 Progress This Session</div>
+        <div id="sc-sys-bars"></div>
+      </div>
+      <!-- Weak cards alert -->
+      <div id="sc-weak" style="display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:.875rem;margin-bottom:1.25rem;font-size:.82rem;color:var(--red);text-align:left"></div>
+      <!-- Action buttons -->
+      <div style="display:flex;flex-direction:column;gap:.625rem">
+        <button onclick="closeStudy()" class="btn-p" style="justify-content:center;padding:.75rem">Done — back to decks</button>
+        <button onclick="restartSession()" class="btn-o" style="justify-content:center;padding:.65rem">Study again</button>
+      </div>
+    </div>
     <button class="sv-close" onclick="closeStudy()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <div class="sprog"><div class="strack"><div class="sfill" id="s-fill" style="width:0%"></div></div><span class="stxt" id="s-txt">0 / 0</span></div>
     <div class="fcard" id="fcard" onclick="flipCard()">
@@ -580,7 +599,7 @@ async function encK(k){const salt=_salt(),key=await _dk(salt),iv=crypto.getRando
 async function decK(){const e=localStorage.getItem(_K),iv=localStorage.getItem(_I);if(!e||!iv)return null;try{const key=await _dk(_salt());const p=await crypto.subtle.decrypt({name:'AES-GCM',iv:Uint8Array.from(atob(iv),c=>c.charCodeAt(0))},key,Uint8Array.from(atob(e),c=>c.charCodeAt(0)));return new TextDecoder().decode(p);}catch{return null;}}
 
 // ══ STATE ══
-let G={apiKey:'',decks:[],af:'all',as:'',af_sys:'',ae:null,ad:null,sq:[],si:0,flip:false,cpc:4,dlv:'detailed',foc:'',se:'USMLE Step 1',globalRefresh:true,qn:10,qdiff:'all',examMode:false,studyMode:'normal'};
+let G={apiKey:'',decks:[],af:'all',as:'',af_sys:'',ae:null,ad:null,sq:[],si:0,flip:false,cpc:4,dlv:'detailed',foc:'',se:'USMLE Step 1',globalRefresh:true,qn:10,qdiff:'all',examMode:false,studyMode:'normal',sessionStats:{forgot:0,hard:0,good:0,easy:0,total:0}};
 
 // ══ INIT ══
 async function init(){
@@ -1325,13 +1344,27 @@ function rdStats(){
   document.getElementById('st-m').textContent=all.filter(c=>c.mastery>=3).length;
   document.getElementById('st-d').textContent=all.filter(c=>new Date(c.due)<=now).length;
   document.getElementById('st-dk').textContent=G.decks.length;
-  const sys={};all.forEach(c=>{const s=c.system||'General';if(!sys[s])sys[s]={t:0,m:0};sys[s].t++;if(c.mastery>=3)sys[s].m++;});
+  const sys={};all.forEach(c=>{const s=c.system||'General';if(!sys[s])sys[s]={t:0,m:0,seen:0};sys[s].t++;if(c.mastery>=3)sys[s].m++;if((c.rev||0)>0)sys[s].seen++;});
   const sp=document.getElementById('sys-prog');
   if(!Object.keys(sys).length){sp.innerHTML='<p style="color:var(--mut);font-size:.84rem">No data yet.</p>';return;}
   const cols={'Biochemistry':'#3b82f6','Cardiovascular':'#ef4444','Cardiology':'#ef4444','Respirology':'#06b6d4','Respiratory':'#06b6d4','Renal':'#8b5cf6','Nephrology':'#8b5cf6','Neurology':'#f59e0b','Pharmacology':'#10b981','Microbiology':'#f97316','Infectious Disease':'#f97316','Immunology':'#ec4899','GI':'#84cc16','Gastroenterology':'#84cc16','Endocrine':'#14b8a6','Endocrinology':'#14b8a6','Hematology':'#6366f1','MSK':'#a78bfa','Rheumatology':'#a78bfa','Reproductive':'#fb7185','Obstetrics':'#fb7185','Gynaecology':'#f43f5e','Psychiatry':'#34d399','Dermatology':'#fbbf24','Paediatrics':'#38bdf8','Surgery':'#94a3b8','Emergency Medicine':'#f87171','Family Medicine':'#4ade80','OET Writing':'#e879f9','OET Reading':'#d946ef','OET Listening':'#c026d3','OET Speaking':'#a21caf','Medical Vocabulary':'#86198f','Clinical Communication':'#701a75','History Taking':'#14b8a6','Physical Examination':'#0d9488','Communication Skills':'#0f766e','Breaking Bad News':'#134e4a','Informed Consent':'#115e59','Patient Education':'#0d9488','General':'#8899bb'};
   sp.innerHTML=Object.entries(sys).sort((a,b)=>b[1].t-a[1].t).map(([s,v])=>{
     const pct=Math.round(v.m/v.t*100),col=cols[s]||'var(--acc)';
-    return '<div style="margin-bottom:.875rem"><div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:4px"><span style="font-weight:500">'+xe(s)+'</span><span style="color:'+col+';font-weight:600">'+v.m+'/'+v.t+'</span></div><div style="height:6px;background:var(--bdr);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:3px;transition:width .5s"></div></div></div>';
+    const seenPct=Math.round((v.seen||0)/v.t*100);
+    return '<div style="margin-bottom:1rem">'
+      +'<div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:4px">'
+        +'<span style="font-weight:500">'+xe(s)+'</span>'
+        +'<span style="color:'+col+';font-weight:600">'+v.m+'/'+v.t+' mastered</span>'
+      +'</div>'
+      +'<div style="height:8px;background:var(--bdr);border-radius:4px;overflow:hidden;position:relative">'
+        +'<div style="height:100%;width:'+seenPct+'%;background:'+col+';border-radius:4px;opacity:0.25;position:absolute"></div>'
+        +'<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:4px;transition:width .5s;position:absolute"></div>'
+      +'</div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:.68rem;margin-top:3px">'
+        +'<span style="color:var(--mut)">'+seenPct+'% seen · '+pct+'% mastered</span>'
+        +'<span style="color:var(--mut)">'+v.t+' cards total</span>'
+      +'</div>'
+    +'</div>';
   }).join('');
 }
 function updBadge(){const n=aC().filter(c=>new Date(c.due)<=new Date()).length;const b=document.getElementById('due-n');if(b){b.textContent=n||'';b.style.display=n?'inline':'none';}}
@@ -1343,13 +1376,13 @@ function startStudy(mode,did){
   if(mode==='due')cards=cards.filter(c=>new Date(c.due)<=new Date());
   else if(mode==='deck'&&did)cards=cards.filter(c=>c.di===did);
   if(!cards.length){toast('No cards to study!','i');return;}
-  G.sq=shuffle([...cards]);G.si=0;document.getElementById('study').classList.add('on');G.flip=false;loadCard();
+  G.sq=shuffle([...cards]);G.si=0;G.sessionStats={forgot:0,hard:0,good:0,easy:0,total:0};document.getElementById('study').classList.add('on');G.flip=false;loadCard();
 }
 function studyOne(id){const c=aC().find(x=>x.id===id);if(!c)return;G.sq=[c];G.si=0;document.getElementById('study').classList.add('on');G.flip=false;loadCard();}
 function closeStudy(){document.getElementById('study').classList.remove('on');const rb=document.getElementById('revision-banner');if(rb)rb.remove();G.studyMode='normal';save();rdBrowse();rdDue();rdStats();updBadge();}
 function loadCard(){
   const c=G.sq[G.si];
-  if(!c){closeStudy();toast('🎉 Session complete!','s');return;}
+  if(!c){showSessionComplete();return;}
   const tot=G.sq.length,pct=Math.round(G.si/tot*100);
   document.getElementById('s-fill').style.width=pct+'%';
   document.getElementById('s-txt').textContent=(G.si+1)+' / '+tot;
@@ -1401,6 +1434,13 @@ function rate(q){
     else{const ef=Math.max(1.3,(dc.ef||2.5)+0.1-(5-q)*0.08);dc.ef=ef;dc.interval=dc.rev<1?1:dc.rev===1?6:Math.round(dc.interval*ef);dc.mastery=Math.min(5,(dc.mastery||0)+(q>=4?2:1));}
     dc.due=new Date(Date.now()+dc.interval*86400000).toISOString();dc.rev=(dc.rev||0)+1;break;
   }
+  // Track session stats
+  if(!G.sessionStats)G.sessionStats={forgot:0,hard:0,good:0,easy:0,total:0};
+  G.sessionStats.total++;
+  if(q===0)G.sessionStats.forgot++;
+  else if(q===1)G.sessionStats.hard++;
+  else if(q===3)G.sessionStats.good++;
+  else if(q===5)G.sessionStats.easy++;
   save();G.si++;loadCard();
 }
 
@@ -2223,6 +2263,100 @@ function cardVisualStep(dir){
   if(n<0||n>=_cardVisualSteps.length)return;
   _cardVisualIdx=n;
   renderCardVisualStep();
+}
+
+// ══ SESSION COMPLETE ══
+function showSessionComplete(){
+  const st=G.sessionStats||{forgot:0,hard:0,good:0,easy:0,total:0};
+  const total=st.total||G.sq.length;
+
+  // Hide card UI, show complete screen
+  document.getElementById('fcard').style.display='none';
+  document.getElementById('rrow').style.display='none';
+  document.getElementById('flip-hint').style.display='none';
+  document.getElementById('card-visual-row').style.display='none';
+  document.getElementById('sprog').style.display='none';
+  const sc=document.getElementById('session-complete');
+  sc.style.display='block';
+  document.getElementById('study').scrollTo({top:0,behavior:'smooth'});
+
+  // Emoji + title based on performance
+  const goodPct=total>0?Math.round((st.good+st.easy)/total*100):0;
+  const emoji=goodPct>=80?'🏆':goodPct>=60?'💪':goodPct>=40?'📚':'🔄';
+  const titleTxt=goodPct>=80?'Excellent session!':goodPct>=60?'Good work!':goodPct>=40?'Keep going!':'Review needed';
+  document.getElementById('sc-emoji').textContent=emoji;
+  document.getElementById('sc-title').textContent=titleTxt;
+  document.getElementById('sc-subtitle').textContent=total+' cards reviewed · '+goodPct+'% rated Good or Easy';
+
+  // Rating breakdown
+  const ratings=[
+    {label:'Forgot',count:st.forgot,color:'var(--red)'},
+    {label:'Hard',count:st.hard,color:'var(--gld)'},
+    {label:'Good',count:st.good,color:'var(--grn)'},
+    {label:'Easy',count:st.easy,color:'var(--acc)'},
+  ];
+  document.getElementById('sc-ratings').innerHTML=ratings.map(r=>`
+    <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:.625rem .5rem;text-align:center">
+      <div style="font-size:1.4rem;font-weight:800;color:${r.color}">${r.count}</div>
+      <div style="font-size:.7rem;color:var(--mut);margin-top:2px">${r.label}</div>
+    </div>`).join('');
+
+  // Progress by system — show cards studied this session
+  const sessionCards=G.sq.slice(0,G.si);
+  const sysSeen={};
+  sessionCards.forEach(card=>{
+    const s=card.system||card.topic||'General';
+    if(!sysSeen[s])sysSeen[s]={seen:0,good:0};
+    sysSeen[s].seen++;
+  });
+  // For each system, also check mastery across ALL cards in that system
+  const allCards=aC();
+  const sysBars=document.getElementById('sc-sys-bars');
+  const cols={'Cardiology':'#ef4444','Neurology':'#f59e0b','Pharmacology':'#10b981','Psychiatry':'#34d399','PHELO':'#8b5cf6','Emergency Medicine':'#f87171','Family Medicine':'#4ade80','Obstetrics':'#fb7185','Gynaecology':'#f43f5e','Paediatrics':'#38bdf8','Surgery':'#94a3b8','Gastroenterology':'#84cc16','Nephrology':'#8b5cf6','Endocrinology':'#14b8a6','Hematology':'#6366f1','Respirology':'#06b6d4','Infectious Disease':'#f97316','Rheumatology':'#a78bfa','Dermatology':'#fbbf24','Biochemistry':'#3b82f6'};
+
+  if(!Object.keys(sysSeen).length){
+    sysBars.innerHTML='<p style="font-size:.82rem;color:var(--mut)">No cards were rated this session.</p>';
+  } else {
+    sysBars.innerHTML=Object.entries(sysSeen).map(([sys,data])=>{
+      // Total mastery for this system across all cards
+      const sysAll=allCards.filter(x=>(x.system||x.topic||'General')===sys);
+      const mastered=sysAll.filter(x=>(x.mastery||0)>=3).length;
+      const pct=sysAll.length?Math.round(mastered/sysAll.length*100):0;
+      const barCol=cols[sys]||'var(--acc)';
+      return `<div style="margin-bottom:.75rem">
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px">
+          <span style="font-weight:500;color:var(--txt)">${xe(sys)}</span>
+          <span style="color:${barCol};font-weight:700">${mastered}/${sysAll.length} mastered · ${data.seen} studied today</span>
+        </div>
+        <div style="height:7px;background:var(--bdr);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${barCol};border-radius:4px;transition:width .6s ease"></div>
+        </div>
+        <div style="font-size:.69rem;color:var(--mut);margin-top:2px">${pct}% mastered overall</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Weak cards alert
+  const weak=G.sq.filter(x=>(x.mastery||0)<2);
+  const weakEl=document.getElementById('sc-weak');
+  if(weak.length){
+    weakEl.style.display='block';
+    weakEl.innerHTML=`⚠️ <strong>${weak.length} card${weak.length>1?'s':''} still weak</strong> — press "Study again" to keep hammering them, or use Revision Mode from My Decks.`;
+  } else {
+    weakEl.style.display='none';
+  }
+
+  save();rdStats();updBadge();
+}
+
+function restartSession(){
+  // Hide complete screen, restart with same cards
+  document.getElementById('session-complete').style.display='none';
+  document.getElementById('fcard').style.display='';
+  document.getElementById('sprog').style.display='';
+  G.si=0;G.sessionStats={forgot:0,hard:0,good:0,easy:0,total:0};
+  G.sq=shuffle([...G.sq]);
+  loadCard();
 }
 
 // ══ KEYBOARD ══
