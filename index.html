@@ -1665,303 +1665,325 @@ function renderTutorVisual(data,type){
 
 function buildVisualSVG(data,type,containerW){
   const nodes=data.nodes||[],edges=data.edges||[],title=data.title||'';
+  // ── DEFENSIVE: cap nodes, fallback layout for small counts ──
+  const cappedNodes=nodes.slice(0,7); // never more than 7
+  nodes.length=0;cappedNodes.forEach(n=>nodes.push(n));
   if(!nodes.length)return '<div style="padding:1rem;color:var(--mut);font-size:.82rem">No visual data</div>';
+  // Network needs 4+ nodes to look right, else fall back to pathway
+  const effectiveType=(vtype==='network'&&nodes.length<4)?'pathway':vtype;
 
   const cmap={acc:'#3b82f6',grn:'#10b981',red:'#ef4444',gld:'#f59e0b',pur:'#8b5cf6',acc2:'#06b6d4'};
   const isDark=!document.body.classList.contains('light');
-  const bg=isDark?'#0f172a':'#f8fafc',tx=isDark?'#f0f4ff':'#0f172a',
-        mu=isDark?'#64748b':'#94a3b8',su=isDark?'#1e293b':'#ffffff',
-        bdr=isDark?'rgba(255,255,255,.07)':'rgba(0,0,0,.08)';
+  const BG=isDark?'#0f172a':'#f8fafc',TX=isDark?'#f0f4ff':'#0f172a',
+        MU=isDark?'#64748b':'#94a3b8',SU=isDark?'#1e293b':'#ffffff';
   const col=k=>cmap[k]||k||'#3b82f6';
   const vtype=type||'pathway';
+  const TITLE_H=title?26:6;
+  const GAP=56; // guaranteed gap between node edges
 
-  // ── NODE DIMENSIONS: calculate per node based on label length ──
-  const PAD_X=20, PAD_Y=12, MIN_W=110, MAX_W=150;
-  const nodeSize=n=>{
+  // ── NODE SIZE: derived from actual text length, never clipped ──
+  function nodeSize(n){
     const lbl=(n.label||'').slice(0,20);
     const sub=(n.sublabel||'').slice(0,24);
-    const w=Math.min(MAX_W,Math.max(MIN_W,lbl.length*8.5+PAD_X*2));
-    const h=sub?60:48;
+    // Width based on LONGEST line (label or sublabel), min 110, max 160
+    const longestLen=Math.max(lbl.length,sub.length*0.85);
+    const w=Math.min(160,Math.max(110,longestLen*8.5+28));
+    const h=sub.length>0?62:50;
     return {w,h};
-  };
+  }
 
-  const GAP_X=52, GAP_Y=48; // minimum space between nodes
-  const TITLE_H=title?28:8;
-
-  // ── LAYOUT: calculate raw positions (origin at 0,0 relative) ──
+  // ── INITIAL POSITIONS per layout type ──
   let rawPos={};
-  const sz=n=>nodeSize(n);
 
-  if(vtype==='loop'){
-    // Circle — radius based on node count and size
-    const maxW=Math.max(...nodes.map(n=>sz(n).w));
+  if(effectiveType==='loop'){
     const n=nodes.length;
-    const R=Math.max(90,n*maxW*0.22+n*15);
+    // Radius scales so nodes don't crowd: based on node size + count
+    const maxW=Math.max(...nodes.map(nd=>nodeSize(nd).w));
+    const R=Math.max(100,(maxW+GAP)*n/(2*Math.PI)*1.1);
     nodes.forEach((nd,i)=>{
+      const {w,h}=nodeSize(nd);
       const angle=(2*Math.PI*i/n)-Math.PI/2;
-      const s=sz(nd);
-      rawPos[nd.id]={x:R*Math.cos(angle),y:R*Math.sin(angle),w:s.w,h:s.h};
+      rawPos[nd.id]={x:R*Math.cos(angle)-w/2,y:R*Math.sin(angle)-h/2,w,h};
     });
 
-  } else if(vtype==='cascade'){
-    // Vertical — each node below the previous with generous gap
-    let y=0;
-    nodes.forEach((nd,i)=>{
-      const s=sz(nd);
-      rawPos[nd.id]={x:0,y,w:s.w,h:s.h};
-      y+=s.h+GAP_Y;
-    });
+  } else if(effectiveType==='cascade'){
+    if(nodes.length>5){
+      // 2-column cascade for long lists
+      const half=Math.ceil(nodes.length/2);
+      const maxW=Math.max(...nodes.map(nd=>nodeSize(nd).w));
+      const colW=maxW+GAP;
+      let ly=0,ry=0;
+      nodes.forEach((nd,i)=>{
+        const {w,h}=nodeSize(nd);
+        if(i<half){rawPos[nd.id]={x:0,y:ly,w,h};ly+=h+GAP*0.7;}
+        else{rawPos[nd.id]={x:colW,y:ry,w,h};ry+=h+GAP*0.7;}
+      });
+    } else {
+      let y=0;
+      nodes.forEach(nd=>{
+        const {w,h}=nodeSize(nd);
+        rawPos[nd.id]={x:0,y,w,h};
+        y+=h+GAP;
+      });
+    }
 
-  } else if(vtype==='receptor'){
-    // Horizontal line
+  } else if(effectiveType==='receptor'){
     let x=0;
-    nodes.forEach((nd,i)=>{
-      const s=sz(nd);
-      rawPos[nd.id]={x,y:0,w:s.w,h:s.h};
-      x+=s.w+GAP_X;
+    nodes.forEach(nd=>{
+      const {w,h}=nodeSize(nd);
+      rawPos[nd.id]={x,y:0,w,h};
+      x+=w+GAP;
     });
 
-  } else if(vtype==='balance'){
+  } else if(effectiveType==='balance'){
+    // Simple two-column: left nodes stacked, right nodes stacked
+    // NO decorative pivot geometry that collides with nodes
     const left=nodes.slice(0,Math.ceil(nodes.length/2));
     const right=nodes.slice(Math.ceil(nodes.length/2));
-    const maxW=Math.max(...nodes.map(n=>sz(n).w));
-    const colW=maxW+GAP_X;
+    const colW=160+GAP;
     let ly=0,ry=0;
-    left.forEach(nd=>{const s=sz(nd);rawPos[nd.id]={x:0,y:ly,w:s.w,h:s.h};ly+=s.h+GAP_Y*0.7;});
-    right.forEach(nd=>{const s=sz(nd);rawPos[nd.id]={x:colW,y:ry,w:s.w,h:s.h};ry+=s.h+GAP_Y*0.7;});
+    left.forEach(nd=>{
+      const {w,h}=nodeSize(nd);
+      rawPos[nd.id]={x:0,y:ly,w,h};
+      ly+=h+GAP*0.7;
+    });
+    right.forEach(nd=>{
+      const {w,h}=nodeSize(nd);
+      rawPos[nd.id]={x:colW,y:ry,w,h};
+      ry+=h+GAP*0.7;
+    });
 
-  } else if(vtype==='timeline'){
-    // Horizontal, nodes stagger above/below
+  } else if(effectiveType==='timeline'){
     let x=0;
-    const maxH=Math.max(...nodes.map(n=>sz(n).h));
+    const maxH=Math.max(...nodes.map(nd=>nodeSize(nd).h));
     nodes.forEach((nd,i)=>{
-      const s=sz(nd);
+      const {w,h}=nodeSize(nd);
+      // Stagger: even above, odd below the timeline
       const above=i%2===0;
-      rawPos[nd.id]={x,y:above?0:maxH+GAP_Y,w:s.w,h:s.h};
-      x+=s.w+GAP_X;
+      rawPos[nd.id]={x,y:above?0:maxH+GAP,w,h};
+      x+=w+GAP;
     });
 
-  } else if(vtype==='network'){
-    // Centre node, others orbit it
-    const centre=nodes[0];
-    const cs=sz(centre);
-    rawPos[centre.id]={x:0,y:0,w:cs.w,h:cs.h};
+  } else if(effectiveType==='network'){
+    const {w:cw,h:ch}=nodeSize(nodes[0]);
+    rawPos[nodes[0].id]={x:0,y:0,w:cw,h:ch};
     const rest=nodes.slice(1);
-    const R=Math.max(100,cs.w+GAP_X+Math.max(...rest.map(n=>sz(n).w))*0.6);
+    if(!rest.length)return '<div style="padding:1rem;color:var(--mut)">Need more nodes for network</div>';
+    const maxW=Math.max(...rest.map(nd=>nodeSize(nd).w));
+    const R=Math.max(120,cw/2+GAP+maxW/2+20);
     rest.forEach((nd,i)=>{
+      const {w,h}=nodeSize(nd);
       const angle=(2*Math.PI*i/rest.length);
-      const s=sz(nd);
-      rawPos[nd.id]={x:R*Math.cos(angle),y:R*Math.sin(angle),w:s.w,h:s.h};
+      rawPos[nd.id]={x:R*Math.cos(angle)-w/2,y:R*Math.sin(angle)-h/2,w,h};
     });
 
-  } else if(vtype==='comparison'){
+  } else if(effectiveType==='comparison'){
     const left=nodes.slice(0,Math.ceil(nodes.length/2));
     const right=nodes.slice(Math.ceil(nodes.length/2));
-    const maxW=Math.max(...nodes.map(n=>sz(n).w));
-    const colW=maxW+GAP_X*1.5;
+    const maxW=Math.max(...nodes.map(nd=>nodeSize(nd).w));
+    const colW=maxW+GAP;
     let ly=0,ry=0;
-    left.forEach(nd=>{const s=sz(nd);rawPos[nd.id]={x:0,y:ly,w:s.w,h:s.h};ly+=s.h+GAP_Y*0.8;});
-    right.forEach(nd=>{const s=sz(nd);rawPos[nd.id]={x:colW,y:ry,w:s.w,h:s.h};ry+=s.h+GAP_Y*0.8;});
+    left.forEach(nd=>{
+      const {w,h}=nodeSize(nd);
+      rawPos[nd.id]={x:0,y:ly,w,h};
+      ly+=h+GAP*0.75;
+    });
+    right.forEach(nd=>{
+      const {w,h}=nodeSize(nd);
+      rawPos[nd.id]={x:colW,y:ry,w,h};
+      ry+=h+GAP*0.75;
+    });
 
-  } else if(vtype==='funnel'){
-    const maxW=Math.max(...nodes.map(n=>sz(n).w));
+  } else if(effectiveType==='funnel'){
+    const maxW=Math.max(...nodes.map(nd=>nodeSize(nd).w));
     let y=0;
     nodes.forEach((nd,i)=>{
-      const s=sz(nd);
-      const shrink=i/(nodes.length)*0.25;
-      const w=Math.max(MIN_W,s.w*(1-shrink));
-      rawPos[nd.id]={x:(maxW-w)/2,y,w,h:s.h};
-      y+=s.h+GAP_Y*0.8;
+      const {h}=nodeSize(nd);
+      const shrink=i/(nodes.length)*0.28;
+      const w=Math.max(110,maxW*(1-shrink));
+      rawPos[nd.id]={x:(maxW-w)/2,y,w,h};
+      y+=h+GAP*0.75;
     });
 
   } else {
-    // pathway: smart grid
+    // pathway: grid
     const n=nodes.length;
-    const cols=n<=2?n:n<=4?2:n<=6?3:3;
-    const maxW=Math.max(...nodes.map(nd=>sz(nd).w));
-    const maxH=Math.max(...nodes.map(nd=>sz(nd).h));
+    const cols=n<=2?n:n<=4?2:3;
+    const maxW=Math.max(...nodes.map(nd=>nodeSize(nd).w));
+    const maxH=Math.max(...nodes.map(nd=>nodeSize(nd).h));
     nodes.forEach((nd,i)=>{
-      const s=sz(nd);
-      const col_i=i%cols,row=Math.floor(i/cols);
-      rawPos[nd.id]={x:col_i*(maxW+GAP_X),y:row*(maxH+GAP_Y),w:s.w,h:s.h};
+      const {w,h}=nodeSize(nd);
+      const ci=i%cols,ri=Math.floor(i/cols);
+      rawPos[nd.id]={x:ci*(maxW+GAP),y:ri*(maxH+GAP),w,h};
     });
   }
 
-  // ── COLLISION RESOLUTION: push apart until no overlaps ──
-  for(let pass=0;pass<8;pass++){
+  // ── COLLISION RESOLUTION: guaranteed GAP between every pair ──
+  const MINSEP=14; // px gap between node edges
+  for(let pass=0;pass<10;pass++){
     let moved=false;
-    nodes.forEach((a,i)=>{
-      nodes.forEach((b,j)=>{
-        if(i>=j)return;
-        const pa=rawPos[a.id],pb=rawPos[b.id];if(!pa||!pb)return;
-        const margin=16; // minimum gap between any two nodes
-        const overlapX=(pa.x+pa.w+margin)-(pb.x);
-        const overlapY=(pa.y+pa.h+margin)-(pb.y);
-        if(overlapX>0&&overlapY>0){
-          // Push on the smaller overlap axis, proportionally
-          if(overlapX<overlapY){
-            const push=overlapX/2+1;
-            pa.x-=push;pb.x+=push;
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const a=rawPos[nodes[i].id],b=rawPos[nodes[j].id];
+        if(!a||!b)continue;
+        const overX=(a.x+a.w+MINSEP)-b.x;
+        const overY=(a.y+a.h+MINSEP)-b.y;
+        if(overX>0&&overY>0){
+          if(overX<=overY){
+            a.x-=overX/2+1;b.x+=overX/2+1;
           } else {
-            const push=overlapY/2+1;
-            pa.y-=push;pb.y+=push;
+            a.y-=overY/2+1;b.y+=overY/2+1;
           }
           moved=true;
         }
-      });
-    });
+      }
+    }
     if(!moved)break;
   }
 
-  // ── NORMALISE: shift all positions so minimum x=0, minimum y=0 ──
+  // ── NORMALISE to origin ──
   const minX=Math.min(...Object.values(rawPos).map(p=>p.x));
   const minY=Math.min(...Object.values(rawPos).map(p=>p.y));
   Object.values(rawPos).forEach(p=>{p.x-=minX;p.y-=minY;});
 
-  // ── CANVAS SIZE: derived from actual node positions, not guessed ──
-  const MARGIN=20;
+  // ── SCALE to fit container ──
+  const MARGIN=18;
   const contentW=Math.max(...Object.values(rawPos).map(p=>p.x+p.w));
   const contentH=Math.max(...Object.values(rawPos).map(p=>p.y+p.h));
-  const W=Math.min(Math.max(contentW+MARGIN*2,200),Math.min(containerW-16,520));
-  // Scale everything proportionally if wider than container
-  const scale=W/(contentW+MARGIN*2);
-  if(scale<1){
-    Object.values(rawPos).forEach(p=>{
-      p.x=p.x*scale+MARGIN;p.y=p.y*scale+MARGIN;
-      p.w*=scale;p.h*=scale;
-    });
-  } else {
-    Object.values(rawPos).forEach(p=>{p.x+=MARGIN;p.y+=MARGIN;});
-  }
-  const H=Math.max(...Object.values(rawPos).map(p=>p.y+p.h))+MARGIN+TITLE_H;
+  const maxW=Math.min(containerW-16,500);
+  const scale=Math.min(1,(maxW-MARGIN*2)/contentW);
 
-  // Final positions offset by title height
+  // Apply scale + margin + title offset
   const pos={};
   nodes.forEach(nd=>{
     const p=rawPos[nd.id];
-    pos[nd.id]={x:p.x,y:p.y+TITLE_H,w:p.w,h:p.h};
+    pos[nd.id]={
+      x:p.x*scale+MARGIN,
+      y:p.y*scale+MARGIN+TITLE_H,
+      w:p.w*scale,
+      h:p.h*scale
+    };
   });
 
-  // ── SVG BUILD ──
-  let svg=`<svg viewBox="0 0 ${W} ${H+TITLE_H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">`;
-  svg+=`<rect width="${W}" height="${H+TITLE_H}" fill="${bg}" rx="14"/>`;
-  if(title)svg+=`<text x="${W/2}" y="${TITLE_H-6}" text-anchor="middle" fill="${mu}" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" letter-spacing="0.07em">${title.slice(0,55).toUpperCase()}</text>`;
+  const W=contentW*scale+MARGIN*2;
+  const H=contentH*scale+MARGIN*2+TITLE_H;
 
-  // ── SPECIAL DECORATIONS ──
-  if(vtype==='balance'){
-    const allX=nodes.map(n=>pos[n.id]);
-    const leftX=allX.slice(0,Math.ceil(nodes.length/2));
-    const rightX=allX.slice(Math.ceil(nodes.length/2));
-    const lCx=leftX.reduce((a,p)=>a+(p.x+p.w/2),0)/(leftX.length||1);
-    const rCx=rightX.reduce((a,p)=>a+(p.x+p.w/2),0)/(rightX.length||1);
-    const pivotX=W/2,pivotY=TITLE_H+8;
-    svg+=`<circle cx="${pivotX}" cy="${pivotY}" r="8" fill="${col('gld')}"/>`;
-    if(leftX.length)svg+=`<line x1="${pivotX}" y1="${pivotY+8}" x2="${lCx}" y2="${(pos[nodes[0].id]?.y||50)-8}" stroke="${mu}" stroke-width="2"/>`;
-    if(rightX.length)svg+=`<line x1="${pivotX}" y1="${pivotY+8}" x2="${rCx}" y2="${(pos[nodes[Math.ceil(nodes.length/2)]]?.y||50)-8}" stroke="${mu}" stroke-width="2"/>`;
-  }
-  if(vtype==='timeline'){
-    const lineY=TITLE_H+Math.max(...nodes.map(n=>sz(n).h))/2+MARGIN;
-    svg+=`<line x1="${MARGIN}" y1="${lineY+TITLE_H}" x2="${W-MARGIN}" y2="${lineY+TITLE_H}" stroke="${mu}" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.5"/>`;
-  }
+  // ── SVG ──
+  let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">`;
+  svg+=`<rect width="${W}" height="${H}" fill="${BG}" rx="14"/>`;
+  if(title)svg+=`<text x="${W/2}" y="${TITLE_H-5}" text-anchor="middle" fill="${MU}" font-size="9.5" font-family="-apple-system,sans-serif" font-weight="700" letter-spacing="0.07em">${title.slice(0,52).toUpperCase()}</text>`;
+
+  // ── SIMPLE DECORATIONS (no geometry that collides with nodes) ──
   if(vtype==='loop'){
     const cx=W/2,cy=(H+TITLE_H)/2;
-    svg+=`<text x="${cx}" y="${cy+5}" text-anchor="middle" fill="${mu}" font-size="13" opacity="0.4">↻</text>`;
+    svg+=`<circle cx="${cx}" cy="${cy}" r="3" fill="${MU}" opacity="0.3"/>`;
+    svg+=`<text x="${cx}" y="${cy+5}" text-anchor="middle" fill="${MU}" font-size="14" opacity="0.25">↻</text>`;
   }
   if(vtype==='comparison'){
-    svg+=`<line x1="${W/2}" y1="${TITLE_H+10}" x2="${W/2}" y2="${H+TITLE_H-10}" stroke="${mu}" stroke-width="1" stroke-dasharray="4 3" opacity="0.3"/>`;
+    svg+=`<line x1="${W/2}" y1="${TITLE_H+8}" x2="${W/2}" y2="${H-8}" stroke="${MU}" stroke-width="1" stroke-dasharray="4 3" opacity="0.25"/>`;
   }
   if(vtype==='cascade'){
+    // Thin vertical guide line behind nodes
     const cx=W/2;
-    nodes.forEach((nd,i)=>{
-      if(i===nodes.length-1)return;
-      const p=pos[nd.id],pn=pos[nodes[i+1].id];if(!p||!pn)return;
-      svg+=`<line x1="${cx}" y1="${p.y+p.h+2}" x2="${cx}" y2="${pn.y-2}" stroke="${mu}" stroke-width="1" stroke-dasharray="3 2" opacity="0.3"/>`;
-    });
+    svg+=`<line x1="${cx}" y1="${TITLE_H+MARGIN}" x2="${cx}" y2="${H-MARGIN}" stroke="${MU}" stroke-width="1" stroke-dasharray="3 3" opacity="0.15"/>`;
+  }
+  if(vtype==='timeline'){
+    const midY=(H+TITLE_H)/2;
+    svg+=`<line x1="${MARGIN}" y1="${midY}" x2="${W-MARGIN}" y2="${midY}" stroke="${MU}" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.3"/>`;
+  }
+  if(vtype==='balance'){
+    // Simple divider line between columns, no pivot that collides
+    svg+=`<line x1="${W/2}" y1="${TITLE_H+8}" x2="${W/2}" y2="${H-8}" stroke="${MU}" stroke-width="1" stroke-dasharray="4 3" opacity="0.25"/>`;
+    svg+=`<text x="${W*0.25}" y="${TITLE_H+20}" text-anchor="middle" fill="${col('red')}" font-size="9" font-family="-apple-system,sans-serif" font-weight="700" opacity="0.7">PROBLEM</text>`;
+    svg+=`<text x="${W*0.75}" y="${TITLE_H+20}" text-anchor="middle" fill="${col('grn')}" font-size="9" font-family="-apple-system,sans-serif" font-weight="700" opacity="0.7">RESULT</text>`;
   }
 
-  // ── COLLECT EDGE LABELS for last-pass rendering ──
+  // ── EDGE LABEL COLLECTION ──
   const edgeLabels=[];
 
-  // ── DRAW EDGES (behind nodes) ──
+  // ── EDGES ──
   edges.forEach((e,ei)=>{
     const fp=pos[e.from],tp=pos[e.to];if(!fp||!tp)return;
-    const x1=fp.x+fp.w/2,y1=fp.y+fp.h/2,x2=tp.x+tp.w/2,y2=tp.y+tp.h/2;
+    const x1=fp.x+fp.w/2,y1=fp.y+fp.h/2;
+    const x2=tp.x+tp.w/2,y2=tp.y+tp.h/2;
     const dx=x2-x1,dy=y2-y1,dist=Math.sqrt(dx*dx+dy*dy)||1;
     const ux=dx/dist,uy=dy/dist;
-    // Start/end at node border
-    const sx=x1+ux*(fp.w/2+3),sy=y1+uy*(fp.h/2+3);
-    const ex2=x2-ux*(tp.w/2+11),ey2=y2-uy*(tp.h/2+11);
+    const sx=x1+ux*(fp.w/2+4),sy=y1+uy*(fp.h/2+4);
+    const ex2=x2-ux*(tp.w/2+12),ey2=y2-uy*(tp.h/2+12);
     const ec=col(e.color);
 
-    // Curve: outward for loop, slight bend for others
+    // Path shape
     let pathD;
     if(vtype==='loop'){
       const cx=W/2,cy=(H+TITLE_H)/2;
       const mx=(sx+ex2)/2,my=(sy+ey2)/2;
       const td=Math.sqrt((mx-cx)**2+(my-cy)**2)||1;
-      const cpx=mx+(mx-cx)/td*40,cpy=my+(my-cy)/td*40;
+      const cpx=mx+(mx-cx)/td*38,cpy=my+(my-cy)/td*38;
       pathD=`M${sx} ${sy} Q${cpx} ${cpy} ${ex2} ${ey2}`;
     } else if(vtype==='cascade'||vtype==='receptor'||vtype==='timeline'){
       pathD=`M${sx} ${sy} L${ex2} ${ey2}`;
     } else {
-      // Slight perpendicular bend to avoid straight overlap
-      const bend=(ei%2===0?1:-1)*18;
-      const mx=(sx+ex2)/2-uy*bend,my=(sy+ey2)/2+ux*bend;
-      pathD=`M${sx} ${sy} Q${mx} ${my} ${ex2} ${ey2}`;
+      const bend=(ei%2===0?1:-1)*16;
+      pathD=`M${sx} ${sy} Q${(sx+ex2)/2-uy*bend} ${(sy+ey2)/2+ux*bend} ${ex2} ${ey2}`;
     }
 
-    const animDur=(1.0+ei*0.18).toFixed(2);
+    const dur=(1.0+ei*0.15).toFixed(2);
     if(e.animated){
-      svg+=`<path d="${pathD}" stroke="${ec}" stroke-width="2" fill="none" opacity="0.15"/>`;
-      svg+=`<path d="${pathD}" stroke="${ec}" stroke-width="2.5" fill="none" stroke-dasharray="9 7"><animate attributeName="stroke-dashoffset" values="0;-32" dur="${animDur}s" repeatCount="indefinite"/></path>`;
+      svg+=`<path d="${pathD}" stroke="${ec}" stroke-width="2" fill="none" opacity="0.2"/>`;
+      svg+=`<path d="${pathD}" stroke="${ec}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="9 7"><animate attributeName="stroke-dashoffset" values="0;-32" dur="${dur}s" repeatCount="indefinite"/></path>`;
     } else {
-      svg+=`<path d="${pathD}" stroke="${mu}" stroke-width="1.8" fill="none" opacity="0.6"/>`;
+      svg+=`<path d="${pathD}" stroke="${MU}" stroke-width="1.8" fill="none" opacity="0.55"/>`;
     }
-    // Arrowhead
-    svg+=`<polygon points="${ex2},${ey2} ${ex2-ux*10+uy*4},${ey2-uy*10-ux*4} ${ex2-ux*10-uy*4},${ey2-uy*10+ux*4}" fill="${e.animated?ec:mu}" opacity="${e.animated?1:0.6}"/>`;
+    svg+=`<polygon points="${ex2},${ey2} ${ex2-ux*10+uy*4},${ey2-uy*10-ux*4} ${ex2-ux*10-uy*4},${ey2-uy*10+ux*4}" fill="${e.animated?ec:MU}" opacity="${e.animated?0.9:0.55}"/>`;
 
-    if(e.label)edgeLabels.push({px:(sx+ex2)/2,py:(sy+ey2)/2,label:e.label.slice(0,16),color:ec});
+    if(e.label){
+      // Place label at midpoint offset perpendicular so it clears the line
+      const mx=(sx+ex2)/2-uy*18,my=(sy+ey2)/2+ux*18;
+      // Clamp label position inside canvas
+      const clampedX=Math.max(40,Math.min(W-40,mx));
+      const clampedY=Math.max(TITLE_H+10,Math.min(H-15,my));
+      edgeLabels.push({px:clampedX,py:clampedY,label:e.label.slice(0,15),color:ec});
+    }
   });
 
-  // ── DRAW NODES (on top of edges) ──
+  // ── NODES ──
   nodes.forEach((nd,i)=>{
     const p=pos[nd.id];if(!p)return;
     const nc=col(nd.color);
     const lbl=(nd.label||'').slice(0,20);
     const sub=(nd.sublabel||'').slice(0,24);
-    const fsize=p.w<120?10.5:11.5;
+    const fsize=p.w<115?10:11;
 
-    svg+=`<g style="opacity:0;animation:nfade 0.3s ease ${i*0.09}s forwards">`;
-    // Drop shadow
-    svg+=`<rect x="${p.x+2}" y="${p.y+3}" width="${p.w}" height="${p.h}" fill="${nc}" rx="10" opacity="0.1"/>`;
-    // Body
-    svg+=`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="${su}" stroke="${nc}" stroke-width="1.8" rx="10"/>`;
-    // Top accent bar
+    svg+=`<g style="opacity:0;animation:nfade 0.3s ease ${(i*0.08).toFixed(2)}s forwards">`;
+    svg+=`<rect x="${p.x+2}" y="${p.y+3}" width="${p.w}" height="${p.h}" fill="${nc}" rx="9" opacity="0.08"/>`;
+    svg+=`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="${SU}" stroke="${nc}" stroke-width="1.8" rx="9"/>`;
+    // Top accent — clipped properly
     svg+=`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="5" fill="${nc}" rx="5"/>`;
     svg+=`<rect x="${p.x}" y="${p.y+3}" width="${p.w}" height="4" fill="${nc}"/>`;
 
-    // Text — vertically centred in node
-    const lblY=sub?p.y+p.h*0.42:p.y+p.h*0.6;
-    svg+=`<text x="${p.x+p.w/2}" y="${lblY}" text-anchor="middle" dominant-baseline="middle" fill="${tx}" font-size="${fsize}" font-family="-apple-system,sans-serif" font-weight="700">${lbl}</text>`;
-    if(sub)svg+=`<text x="${p.x+p.w/2}" y="${p.y+p.h*0.73}" text-anchor="middle" dominant-baseline="middle" fill="${mu}" font-size="9" font-family="-apple-system,sans-serif">${sub}</text>`;
-
-    // Step number for cascade
+    // Label text — dominant-baseline ensures vertical centering works cross-browser
+    const cy=sub?p.y+p.h*0.38:p.y+p.h*0.55;
+    svg+=`<text x="${p.x+p.w/2}" y="${cy}" text-anchor="middle" dominant-baseline="middle" fill="${TX}" font-size="${fsize}" font-family="-apple-system,sans-serif" font-weight="700">${lbl}</text>`;
+    if(sub){
+      svg+=`<text x="${p.x+p.w/2}" y="${p.y+p.h*0.72}" text-anchor="middle" dominant-baseline="middle" fill="${MU}" font-size="8.5" font-family="-apple-system,sans-serif">${sub}</text>`;
+    }
+    // Step badge for cascade only
     if(vtype==='cascade'){
-      svg+=`<circle cx="${p.x+p.w-11}" cy="${p.y+11}" r="9" fill="${nc}"/>`;
-      svg+=`<text x="${p.x+p.w-11}" y="${p.y+11}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-weight="700" font-family="-apple-system,sans-serif">${i+1}</text>`;
+      svg+=`<circle cx="${p.x+p.w-10}" cy="${p.y+10}" r="8" fill="${nc}"/>`;
+      svg+=`<text x="${p.x+p.w-10}" y="${p.y+10}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="8.5" font-weight="700" font-family="-apple-system,sans-serif">${i+1}</text>`;
     }
     svg+='</g>';
   });
 
-  // ── EDGE LABELS: absolutely last, pill background, always readable ──
+  // ── EDGE LABELS LAST: perpendicular offset + solid background ──
   edgeLabels.forEach(el=>{
-    const lw=el.label.length*6.8+16;
-    const lh=18;
-    svg+=`<rect x="${el.px-lw/2}" y="${el.py-lh/2}" width="${lw}" height="${lh}" fill="${bg}" stroke="${el.color}" stroke-width="1.3" rx="9" opacity="0.97"/>`;
-    svg+=`<text x="${el.px}" y="${el.py}" text-anchor="middle" dominant-baseline="middle" fill="${el.color}" font-size="10" font-family="-apple-system,sans-serif" font-weight="700">${el.label}</text>`;
+    const lw=el.label.length*6.5+18;
+    const lh=17;
+    svg+=`<rect x="${el.px-lw/2}" y="${el.py-lh/2}" width="${lw}" height="${lh}" fill="${BG}" stroke="${el.color}" stroke-width="1.2" rx="8" opacity="0.97"/>`;
+    svg+=`<text x="${el.px}" y="${el.py}" text-anchor="middle" dominant-baseline="middle" fill="${el.color}" font-size="9.5" font-family="-apple-system,sans-serif" font-weight="700">${el.label}</text>`;
   });
 
-  svg+=`<style>@keyframes nfade{from{opacity:0;transform:scale(0.88)}to{opacity:1;transform:scale(1)}}</style>`;
+  svg+=`<style>@keyframes nfade{from{opacity:0;transform:scale(0.9) translateY(3px)}to{opacity:1;transform:scale(1) translateY(0)}}</style>`;
   svg+='</svg>';
   return svg;
 }
