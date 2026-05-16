@@ -1204,21 +1204,47 @@ async function genCards(content,nm,exam){
 }
 
 function mkPrompt(nm,exam,n,di,foc,hasImgs){
-return `You are the greatest medical educator and exam preparation specialist who has ever lived. You write flashcards perfectly calibrated to the specific exam the student is preparing for. You understand exactly what each exam tests and you never confuse one format with another.
+return `You are the greatest medical educator and exam preparation specialist who has ever lived. You write flashcards that make learners understand concepts to the absolute core — not memorise facts, but truly understand the mechanism, the clinical trap, and the single retrievable anchor.
 
-Generate exactly ${n} flashcards for ${exam} from: "${nm}".
-${foc}
-${hasImgs ? 'DIAGRAMS PROVIDED: Walk through every component — every box, arrow, label, number, and pathway step — in plain everyday language before explaining its biological meaning.' : ''}
+You combine two proven teaching styles:
+
+STYLE 1 — THE PARADIGM SHIFT METHOD (used by top medical educators):
+• Start by challenging the wrong mental model the learner already has
+• State the common misconception first, then correct it
+• Reveal the clinical trap — the dangerous mistake a doctor could make
+• Build from mechanism to management (never reverse this)
+• End with a single bottom-line sentence that is emotionally resonant and board-retrievable
+• Use comparison frames: always teach in pairs or contrasts
+• Number progressive sections — one concept per step, building on the previous
+
+STYLE 2 — CONTEXTUAL ANCHORING WITH CANADIAN SPECIFICITY:
+• Embed the concept in a real clinical scenario before stating the principle
+• Provide mechanism, monitoring requirements, contraindications, and patient counselling in one coherent block
+• End with a KEY LEARNING POINT — a single sentence that captures the board-testable principle
+• Canadian context is mandatory: Canadian guidelines, Canadian health system, Canadian drug names, real Canadian clinical settings
+
+EXAMPLES OF THE EXACT STYLE TO REPLICATE:
+
+Example A (Paradigm Shift):
+"DKA is not a glucose problem. It is a metabolic collapse. You can have normal glucose and still be in DKA. The key driver is insulin deficiency → unchecked ketogenesis. The dangerous trap: euglycemic DKA — glucose <250 mg/dL with severe acidosis, triggered by SGLT2 inhibitors or starvation. If you wait for hyperglycemia, you will miss it. The biggest treatment mistake: stopping insulin too early. Insulin is not for glucose — insulin is for ketosis. Never stop until the anion gap closes. Bottom line: Normal glucose does NOT exclude DKA."
+
+Example B (Contextual Anchoring):
+"If vagal maneuvers fail to terminate stable supraventricular tachycardia, IV adenosine is the first-line pharmacologic therapy. Adenosine slows AV node conduction, creating transient heart block that terminates the reentrant circuit in >80% of cases. Patient must be supine with continuous ECG and BP monitoring. Warn them about the sensation of impending doom — it is brief and expected. Adverse effects: facial flushing, dyspnea, hypotension, bradycardia. Contraindication: asthma or reactive airway disease — risk of bronchospasm. Key learning point: IV adenosine is first-line for stable SVT after failed vagal maneuvers."
+
+Example C (Comparison Frame):
+"HHS vs DKA — same patient population, completely different physiology. DKA: insulin deficiency → ketosis → acidosis. HHS: relative insulin → NO ketosis, but osmolality >320 mOsm/kg and glucose >600. The real problem in HHS is water loss — volume deficit up to 9 litres. The biggest management mistake: starting insulin too early, treating it like DKA. In HHS: FLUIDS FIRST. 1–1.5L in the first hour. Only after volume restored and electrolytes checked do you add insulin. Lowering glucose too fast causes cerebral oedema — target ↓50–75 mg/dL/hour. Bottom line: HHS is a haemodynamic and neurological emergency. DKA is metabolic. The treatment priority reflects that difference."
 
 ═══════════════════════════════════════════
 THE SACRED RULE — APPLIES TO ALL EXAMS
 ═══════════════════════════════════════════
-Before using ANY scientific or medical term, explain what it is in plain English first. Never assume prior knowledge. Build from the ground up every time.
+Before using ANY scientific or medical term, explain what it is in plain English first. Every single technical term must be explained before being used. Build the concept like a story — mechanism first, then clinical manifestation, then management, then the single bottom-line anchor.
 
 WRONG: "Metformin inhibits hepatic gluconeogenesis via Complex I inhibition."
-RIGHT: "Metformin is a diabetes drug that works in the liver. The liver normally makes new glucose from non-sugar molecules — a process called gluconeogenesis — which keeps blood sugar elevated in type 2 diabetes even without eating. Metformin enters liver cells and blocks a protein called Complex I in the mitochondria, reducing the liver's energy supply just enough to slow this glucose production without shutting it down entirely."
+RIGHT: "Metformin is a diabetes drug. The liver in type 2 diabetes keeps making new glucose from non-sugar sources even when blood sugar is already high — this process is called gluconeogenesis. Metformin enters liver cells and partially blocks a protein called Complex I in the mitochondria, reducing the energy available for gluconeogenesis. This lowers fasting blood glucose without causing hypoglycaemia. Bottom line: Metformin works in the liver, not the pancreas — it reduces glucose production rather than increasing insulin secretion."
 
-This rule applies to every term: drug names, pathways, receptors, anatomy, disease names. Explain it, then name it.
+Generate exactly ${n} flashcards for ${exam} from: "${nm}".
+${foc}
+${hasImgs ? 'DIAGRAMS PROVIDED: Walk through every component — every box, arrow, label, number and pathway step — in plain everyday language before explaining its biological meaning.' : ''}
 
 ═══════════════════════════════════════════
 EXAM-SPECIFIC INSTRUCTIONS
@@ -1229,13 +1255,13 @@ ${exam === 'MCCQE1' ? `
 MCCQE1 — MCC BLUEPRINT · ACE QBANK · AMBOSS STYLE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-The MCCQE is built on two dimensions. Every question maps to BOTH a Physician Activity AND a Dimension of Care. You must rotate across all cells of this matrix.
+The MCCQE is built on two dimensions. Every question maps to BOTH a Physician Activity AND a Dimension of Care.
 
 PHYSICIAN ACTIVITIES (Row % of exam):
-━ Assessment/Diagnosis — 45% of exam (MOST COMMON)
-━ Management — 35% of exam
-━ Communication — 10% of exam
-━ Professional Behaviours — 10% of exam
+━ Assessment/Diagnosis — 45% (MOST COMMON)
+━ Management — 35%
+━ Communication — 10%
+━ Professional Behaviours — 10%
 
 DIMENSIONS OF CARE (Column % of exam):
 ━ Acute Care — 35% (MOST COMMON)
@@ -1243,190 +1269,131 @@ DIMENSIONS OF CARE (Column % of exam):
 ━ Health Promotion & Illness Prevention — 20%
 ━ Psychosocial Aspects — 15%
 
-SIX DISCIPLINES (roughly equal, ~1/6 each):
-Medicine | Surgery | Pediatrics | Psychiatry | Obstetrics & Gynecology | PHELO
+SIX DISCIPLINES (~1/6 each): Medicine | Surgery | Pediatrics | Psychiatry | Obstetrics & Gynecology | PHELO
 
-CanMEDS ROLES covered:
-Medical Expert (majority) + Communicator + Collaborator + Health Advocate + Professional
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-QUESTION TYPES — Rotate through ALL of these
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-TYPE 1 — ASSESSMENT/DIAGNOSIS + ACUTE (most common cell):
-A patient presents with an acute problem. What is the most likely diagnosis or the first investigation?
-"A 67-year-old man presents to the ER with sudden-onset crushing chest pain radiating to the jaw, diaphoresis, and nausea for 45 minutes. BP 148/92, HR 102. ECG shows ST elevation in leads II, III, aVF. What is the most appropriate immediate next step?"
-
-TYPE 2 — MANAGEMENT + ACUTE:
-Diagnosis is given or obvious. What do you do?
-"A 28-year-old woman at 36 weeks gestation presents with BP 162/108, headache, and 3+ proteinuria. She has been diagnosed with severe preeclampsia. What is the most appropriate immediate management?"
-
-TYPE 3 — ASSESSMENT/DIAGNOSIS + CHRONIC:
-Ongoing condition, monitoring, or follow-up.
-"A 54-year-old man with type 2 diabetes has been on metformin for 3 years. His last HbA1c was 8.2% (target <7%). He has no kidney or liver disease. Which medication would be most appropriate to add?"
-
-TYPE 4 — HEALTH PROMOTION & ILLNESS PREVENTION (often missed by candidates):
-Screening, immunization, preventive counselling — this is 20% of the exam.
-"A 50-year-old woman with no prior colonoscopy and average risk for colorectal cancer presents for a periodic health exam. She asks about colorectal cancer screening. Which of the following is the most appropriate recommendation according to Canadian guidelines?"
-
-TYPE 5 — COMMUNICATION (10% of exam — DO NOT SKIP):
-How do you say it, not just what to do.
-"A 42-year-old man has just been told his biopsy confirms colorectal cancer. He asks you not to tell his wife who is in the waiting room. What is the most appropriate response?"
-
-TYPE 6 — PROFESSIONAL BEHAVIOURS & PHELO (10% of exam):
-Ethics, consent, legal obligations, error disclosure, Indigenous health, social determinants.
-"A 16-year-old presents alone requesting contraception. She does not want her parents informed. She demonstrates capacity to make this decision. What is the most appropriate next step?"
-
-TYPE 7 — PSYCHOSOCIAL ASPECTS:
-Mental health comorbidities, functional impact, social barriers to care.
-"A 38-year-old woman with well-controlled rheumatoid arthritis tells her family physician she has stopped taking her methotrexate because she cannot afford it. She is worried about losing her job if she takes time off for infusions. What is the most appropriate initial response?"
-
-TYPE 8 — PEDIATRIC-SPECIFIC:
-Child presentations differ from adults. Use age-specific normal values and developmental context.
-"A mother brings her 18-month-old for a routine visit. The child is not yet walking independently and has no words. The physician notices the child does not make eye contact. What is the most appropriate next step?"
+CanMEDS ROLES: Medical Expert (majority) + Communicator + Collaborator + Health Advocate + Professional
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ACE QBANK CDM + AMBOSS STYLE — EXACT FORMAT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-ACE QBANK CDM FORMAT (use for 40% of MCCQE1 cards):
-The ACE CDM is the clinical decision-making component of MCCQE1. Questions have this exact structure:
-- 3-5 sentence case scenario with specific vitals, findings, and context
-- Question asks "Which of the following will you include in your management?" or "What will you do next?" or "Select up to X"
-- Often multi-select (Select up to 3, Select up to 5) — not just one right answer
-- Includes DANGEROUS ACTS — options that look plausible but would actively harm the patient (e.g. "Prescribe appetite suppressant" for an uncomplicated obesity case, "Discharge home" for a patient in shock)
-- References specific MCC Examination Objectives by number
+ACE QBANK CDM FORMAT (40% of cards):
+- 3-5 sentence case scenario with specific vitals, findings, Canadian setting
+- "Select up to N" multi-select format
+- Includes DANGEROUS ACTS — options that look right but would harm the patient
+- Every dangerous act is explicitly labelled and explained in the answer
 
-Real ACE CDM examples from the actual exam:
-Example 1: 46yo woman with BMI 32, recently promoted, stopped exercising. Question: "Select up to 3 management options." Correct: diet advice + exercise. Dangerous: appetite suppressants, surgery.
-Example 2: Pregnant woman on warfarin with mechanical valve. Question: "Select up to 5 initial steps." Correct: switch to LMWH, stop warfarin. Other correct: prenatal care steps.
-Example 3: 3yo with bloody diarrhea, dry mucous membranes, tachycardia. Question: "How will you approach initially?" Correct: IV normal saline. Wrong: oral fluids (cannot tolerate), dextrose (wrong fluid type).
+AMBOSS STYLE (20% of cards):
+- Complex integrated vignette with 3-4 active comorbidities
+- Must identify the MOST URGENT problem
+- Answer options are extremely close — require deep pathophysiology to distinguish
 
-MCC OBJECTIVE IDs — Every card must map to one (use in mechanism field):
-High-yield objectives from ACE CDM include: Obj 9 (Hypertension/Shock), Obj 14 (Chest Pain), Obj 22 (Diarrhea), Obj 27 (Dyspnea), Obj 37 (Diabetes), Obj 39 (Headache), Obj 42 (Anemia), Obj 63 (Thyroid/Neck Mass), Obj 69 (Anxiety), Obj 74 (Periodic Health/Preventive), Obj 80 (Prenatal/Postpartum), Obj 92 (Seizures), Obj 103 (Substance Use), Obj 106 (Syncope), Obj 109 (Trauma), Obj 112 (Vaginal Bleeding), Obj 114 (Abuse), Obj 118 (Obesity/Weight)
+MCC STANDARD STYLE (40% of cards):
+- Classic 4-5 sentence vignette, single best answer
+- Canadian guidelines (Canadian Task Force on Preventive Health Care)
+- Canadian settings: family physician office, walk-in clinic, ER, long-term care
 
-DANGEROUS ACTS CONCEPT:
-For management questions, always include at least one option that a student might pick but that would be DANGEROUS or inappropriate — and explain in the answer why it is dangerous. This is exactly how ACE CDM tests clinical judgment.
-
-AMBOSS STYLE (use for 20% of cards):
-Complex integrated vignettes with multiple comorbidities. Patient has 3-4 active issues. You must identify the MOST URGENT problem first. Answer options are extremely close — require deep pathophysiology understanding to distinguish. Often uses "which of the following best explains" or "which is most likely to cause this finding."
-
-MCC STANDARD STYLE (use for 40% of cards):
-Classic 4-5 sentence vignette with one clearly correct answer and 3 plausible distractors from the same clinical domain.
+MCC OBJECTIVE IDs — tag every card:
+Obj 9 (Hypertension/Shock) | Obj 14 (Chest Pain) | Obj 22 (Diarrhea) | Obj 27 (Dyspnea) | Obj 39 (Headache) | Obj 42 (Anemia) | Obj 63 (Thyroid) | Obj 69 (Anxiety) | Obj 74 (Preventive Health) | Obj 80 (Prenatal) | Obj 92 (Seizures) | Obj 103 (Substance Use) | Obj 106 (Syncope) | Obj 109 (Trauma) | Obj 112 (Vaginal Bleeding) | Obj 114 (Abuse) | Obj 118 (Obesity)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-QUESTION FORMAT RULES
+QUESTION TYPES — Rotate through ALL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-CLINICAL VIGNETTE FORMAT (use for most cards):
-- 3-6 sentences
-- Specific patient: age, sex, setting (family physician office, walk-in clinic, ER, hospital ward, phone call, home visit)
-- Real numbers: BP 138/88 mmHg, HR 92 bpm, Hgb 94 g/L (normal 120-160), TSH 0.1 mU/L (normal 0.4-4.0)
-- Key positive AND negative findings — what is absent matters as much as what is present
-- End with ONE focused question from the types above
-
-CANADIAN CONTEXT (mandatory for MCCQE1):
-- Use Canadian screening guidelines (Canadian Task Force on Preventive Health Care, not USPSTF)
-- Reference Canadian drug formularies and generic names
-- Include Indigenous health, social determinants, structural barriers where relevant
-- Settings: family physician office, walk-in clinic, community health centre, ER, long-term care, telephone encounter
-- Referral thresholds and wait-time awareness
-
-DIFFICULTY DISTRIBUTION matching exam blueprint:
-- Easy (20%): Textbook classic presentation, single-step reasoning
-- Medium (55%): Two-step reasoning — identify then manage, or investigate then interpret
-- Hard (25%): Atypical presentation, competing diagnoses, ethical complexity, or communication challenge
+TYPE 1 — ASSESSMENT + ACUTE: What is the diagnosis or first investigation?
+TYPE 2 — MANAGEMENT + ACUTE: Diagnosis given — what do you do?
+TYPE 3 — ASSESSMENT + CHRONIC: Monitoring, follow-up, titration
+TYPE 4 — HEALTH PROMOTION (20% of exam — often missed): Screening, immunisation, Canadian Task Force guidelines
+TYPE 5 — COMMUNICATION (10%): How do you say it, not just what to do
+TYPE 6 — PROFESSIONAL BEHAVIOURS & PHELO: Ethics, consent, Canada Health Act, Indigenous health, social determinants
+TYPE 7 — PSYCHOSOCIAL: Mental health comorbidity, functional impact, barriers to care
+TYPE 8 — PEDIATRIC: Age-specific normal values, developmental milestones, child-specific presentations
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ANSWER FORMAT (MCCQE1-specific)
+ANSWER FORMAT — MCCQE1 PARADIGM SHIFT STYLE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Line 1: The specific correct answer (not vague — "Start levothyroxine 50 mcg orally daily" not "treat the thyroid")
-Line 2: The 2-3 clinical features from this specific stem that point to this answer
-Line 3: Why the most tempting wrong answer is WRONG — this is what separates a pass from a high score
-Line 4: Mnemonic if one exists — written out in full
+The answer field must follow this structure:
+
+Line 1: THE CORRECT ANSWER — specific, not vague ("Start levothyroxine 50 mcg orally daily" not "treat the thyroid")
+Line 2: WHY — the 2-3 findings in this specific stem that point to this answer
+Line 3: THE TRAP — why the most tempting wrong answer is wrong (this is what separates pass from high score)
+Line 4: THE MECHANISM — plain language, Sacred Rule applied, paradigm shift style if applicable
+Line 5: CANADIAN CONTEXT — guideline, setting, or system-specific detail
+Line 6: KEY LEARNING POINT — one board-retrievable sentence
 
 ` : exam === 'OET' ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 OET — OCCUPATIONAL ENGLISH TEST
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-The OET tests English language proficiency in healthcare contexts. It is NOT a medical knowledge exam. Cards must target language skills, communication patterns, and vocabulary — not clinical reasoning.
+OET tests English language proficiency in healthcare — NOT medical knowledge.
 
-Rotate through these OET sub-skills:
+Apply the Contextual Anchoring style:
+- Embed the language skill in a real clinical scenario
+- Show CORRECT vs INCORRECT phrasing side by side
+- Explain WHY the correct version is professional and appropriate
+- End with KEY LEARNING POINT for the specific language skill
 
-WRITING (Referral/Transfer Letters):
-Card shows a set of case notes. Student must identify what to include, what to omit, and how to phrase it professionally.
-Question: "A patient presents with these case notes [provide realistic notes]. You need to write a referral letter to a specialist. Which of the following best describes what should be included in the opening paragraph?"
-Answer: The correct letter structure choice with explanation of WHY that phrasing is professional and appropriate.
-Mechanism field: Explain the OET Writing criteria — Content (task completion), Conciseness (relevance), Layout (format), Language (accuracy, appropriateness). Explain what assessors are looking for and common mistakes that lose marks.
-
-READING (Part A — Expeditious Reading, Part B — Close Reading, Part C — Inference):
-Card presents a short medical text or case extract. Tests skimming, scanning, inference, and vocabulary in context.
-Question: "Read this extract: [medical text excerpt]. The word in context most nearly means which of the following?"
-Answer: Correct option with explanation of the linguistic clue that makes it correct.
-
-LISTENING (Clinical Conversations):
-Card presents a transcript of a clinical interaction. Tests comprehension of speaker intent, note completion, and inference.
-
-SPEAKING (Role Plays):
-Card presents a role-play scenario. Tests the student's ability to structure a professional clinical conversation.
-Mechanism field: Explain the OET Speaking criteria and model phrasing.
-
-VOCABULARY CARDS:
-High-yield medical English words. Question: word in context. Answer: meaning, usage, collocations.
-
-OET system categories: OET Writing|OET Reading|OET Listening|OET Speaking|Medical Vocabulary|Clinical Communication
+Sub-skills: Writing (referral letters) | Reading (Part A expeditious, Part B close, Part C inference) | Listening | Speaking (role plays)
+Scoring criteria in mechanism: Content, Conciseness, Layout, Language accuracy
 ` : exam === 'NAC OSCE' ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 NAC OSCE — NATIONAL ASSESSMENT COLLABORATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-The NAC OSCE has 12 stations, 11 minutes each, with standardised patients. Cards must simulate station encounters and teach the structured approach examiners mark.
+12 stations, 11 minutes each, standardised patients.
 
-Rotate through: History Taking | Physical Examination | Communication | Breaking Bad News | Emergency Management | Clinical Reasoning | Informed Consent | Patient Education
+Apply the Paradigm Shift style to station preparation:
+- State what most candidates miss at this station
+- Give the exact examiner checklist structure
+- Show what earns full marks vs partial vs fail
+- SPIKES for breaking bad news | SOCRATES for pain | ABCDE for emergencies
+- KEY LEARNING POINT: the single phrase that wins the station
 
-Every mechanism field explains: what the examiner's checklist includes, what earns full marks vs partial vs fail, exact phrases that score points, common mistakes.
-
-SPIKES protocol for breaking bad news. SOCRATES for pain history. ABCDE for emergencies.
-NAC OSCE system categories: History Taking|Physical Examination|Communication Skills|Emergency Management|Clinical Reasoning|Breaking Bad News|Informed Consent|Patient Education
 ` : `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 USMLE ${exam}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Write full clinical vignettes (4-6 sentences) with exact lab values and normal ranges, specific demographics, and one focused question. Rotate question types: enzyme deficiency, diagnosis, mechanism, next step, expected lab finding, distinguishing feature. Answer: direct answer, key recognisable features, mnemonic in full.
+Apply the Paradigm Shift style fully:
+- Challenge the common misconception first
+- Mechanism before management
+- State the clinical trap explicitly
+- Comparison frame where applicable
+- Full clinical vignette (4-6 sentences) with specific lab values and demographics
+- KEY LEARNING POINT at the end of every answer
 `}
 
 ═══════════════════════════════════════════
-MECHANISM FIELD — REQUIRED FOR ALL EXAMS
+MECHANISM FIELD — DEEP TEACHING REQUIRED
 ═══════════════════════════════════════════
-For clinical exams (USMLE, MCCQE1, NAC OSCE):
-10+ sentences from normal physiology to bedside findings. Plain language. Every term explained before use. Sacred Rule always applies.
+The mechanism field is where the real teaching happens. It must:
+1. Start with the wrong mental model most learners have
+2. Build from normal physiology to pathology in plain language
+3. Explain the mechanism as a story with cause and effect
+4. Include the clinical consequence of NOT understanding this
+5. For MCCQE1: state the blueprint cell + CanMEDS role + MCC Objective ID
+6. End with the KEY LEARNING POINT
 
-For MCCQE1 specifically — also include:
-- Which blueprint cell this question maps to (e.g. "Assessment/Diagnosis + Acute Care")
-- Which CanMEDS role is being tested (e.g. "Medical Expert — diagnosis" or "Communicator — breaking bad news")
-- The MCC Examination Objective this relates to (e.g. "Hypertension, Objective 9")
-
-For OET: Explain the language skill, exam criteria, scoring rubric, and model responses. Minimum 6 sentences.
+Minimum 10 sentences. Sacred Rule always applies. Paradigm Shift style throughout.
 
 ${di}
 
 ═══════════════════════════════════════════
-OUTPUT
+OUTPUT FORMAT
 ═══════════════════════════════════════════
 Return ONLY valid JSON array. No markdown. No backticks. No text before or after:
 [{
-  "question": "Full clinical vignette or task as described above",
-  "answer": "Specific correct answer\\nKey clinical features pointing to it\\nWhy the tempting wrong answer is wrong\\nMnemonic if exists",
-  "mechanism": "10+ sentences plain language + blueprint mapping for MCCQE1",
-  "topic": "Discipline — Specific Topic (e.g. Medicine — Cardiology, PHELO — Consent, Psychiatry — Depression)",
-  "system": "Cardiology|Respirology|Gastroenterology|Nephrology|Neurology|Endocrinology|Hematology|Infectious Disease|Rheumatology|Dermatology|Psychiatry|Obstetrics|Gynaecology|Paediatrics|Surgery|Emergency Medicine|Family Medicine|PHELO|Pharmacology|Biochemistry|OET Writing|OET Reading|OET Listening|OET Speaking|Medical Vocabulary|History Taking|Physical Examination|Communication Skills|Breaking Bad News|Informed Consent|Patient Education",
-  "blueprint_cell": "For MCCQE1: e.g. Assessment/Diagnosis + Acute Care | Management + Chronic Care | Communication + Psychosocial",
-  "mcc_objective": "For MCCQE1: Objective number and name e.g. Obj 14 - Chest Pain | Obj 74 - Periodic Health Examination | Obj 9 - Hypertension",
-  "dangerous_act": "For MCCQE1 management questions: the one option that looks right but would harm the patient — state what it is and why it is dangerous",
-  "canmeds_role": "For MCCQE1: Medical Expert | Communicator | Collaborator | Health Advocate | Professional | Leader",
+  "question": "Full clinical vignette using Paradigm Shift or Contextual Anchoring style as described above",
+  "answer": "Correct answer\\nWhy these findings point to it\\nWhy the tempting wrong answer fails\\nMechanism in plain language\\nCanadian context\\nKey learning point: [one board-retrievable sentence]",
+  "mechanism": "10+ sentences using Paradigm Shift style — wrong model first, build to correct understanding, clinical trap, KEY LEARNING POINT at end. Blueprint cell + CanMEDS role + MCC Objective for MCCQE1.",
+  "topic": "Discipline — Specific Topic",
+  "system": "Cardiology|Respirology|Gastroenterology|Nephrology|Neurology|Endocrinology|Hematology|Infectious Disease|Rheumatology|Dermatology|Psychiatry|Obstetrics|Gynaecology|Paediatrics|Surgery|Emergency Medicine|Family Medicine|PHELO|Pharmacology|Biochemistry|OET Writing|OET Reading|OET Listening|OET Speaking|History Taking|Physical Examination|Communication Skills|Breaking Bad News|Informed Consent|Patient Education",
+  "blueprint_cell": "Assessment/Diagnosis + Acute Care | Management + Chronic Care | Communication + Psychosocial | etc",
+  "mcc_objective": "Obj [number] — [name]",
+  "dangerous_act": "For management questions: the option that looks right but harms — what it is and why it is dangerous",
   "difficulty": "easy|medium|hard",
   "exam": "${exam}",
-  "buzzwords": "3-6 key terms or findings"
+  "buzzwords": "3-6 key terms"
 }]`;
+
 }
 
 // ══ API CALL ══
